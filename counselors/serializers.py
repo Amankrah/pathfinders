@@ -1,0 +1,59 @@
+from rest_framework import serializers
+from django.contrib.auth import get_user_model
+from users.serializers import UserSerializer
+from .models import Counselor, CounselorUserRelation
+
+User = get_user_model()
+
+class CounselorSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = Counselor
+        fields = ['id', 'user', 'professional_title', 'institution', 
+                 'qualification', 'phone_number', 'bio', 'is_active']
+
+class CounselorUserRegistrationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    phone_number = serializers.CharField(required=False)
+    notes = serializers.CharField(required=False)
+
+class CounselorUserRelationSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    
+    class Meta:
+        model = CounselorUserRelation
+        fields = ['id', 'user', 'status', 'notes', 'created_at']
+
+class AssessmentSummarySerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    completion_status = serializers.BooleanField()
+    created_at = serializers.DateTimeField()
+    counselor_notes = serializers.CharField()
+    results = serializers.JSONField(required=False)
+
+class GiftProfileSummarySerializer(serializers.Serializer):
+    primary_gift = serializers.CharField()
+    secondary_gifts = serializers.JSONField()
+    scores = serializers.JSONField()
+    timestamp = serializers.DateTimeField()
+
+class CounselorDashboardUserSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    full_name = serializers.CharField()
+    email = serializers.CharField()
+    status = serializers.CharField()
+    notes = serializers.CharField()
+    created_at = serializers.DateTimeField()
+    assessments = AssessmentSummarySerializer(many=True)
+    gift_profile = GiftProfileSummarySerializer(allow_null=True)
+
+class UserDetailSerializer(serializers.Serializer):
+    user = serializers.DictField()
+    assessments = serializers.ListField()
+    gift_profile = serializers.DictField(allow_null=True)
+
+class CounselorNotesSerializer(serializers.Serializer):
+    notes = serializers.CharField(required=True) 

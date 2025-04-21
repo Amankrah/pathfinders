@@ -13,6 +13,16 @@ class Assessment(models.Model):
     results_data = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
+    counselor = models.ForeignKey(
+        'counselors.Counselor',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='conducted_assessments'
+    )
+    counselor_notes = models.TextField(blank=True)
+    is_counselor_session = models.BooleanField(default=False)
+    session_date = models.DateTimeField(null=True, blank=True)
     
     class Meta:
         ordering = ['-created_at']

@@ -18,14 +18,23 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-here')
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-development-key-for-local-use-only')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
+
+# Environment settings
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'development')
+IS_DEVELOPMENT = ENVIRONMENT == 'development'
+IS_PRODUCTION = ENVIRONMENT == 'production'
 
 ALLOWED_HOSTS = [
     'pathfindersgifts.com',
     'www.pathfindersgifts.com',
     '13.61.197.147'
 ]
+
+# Add localhost for development
+if DEBUG:
+    ALLOWED_HOSTS.extend(['localhost', '127.0.0.1'])
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -40,6 +49,7 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     'assessments.apps.AssessmentsConfig',
     'books.apps.BooksConfig',
+    'counselors.apps.CounselorsConfig',
     
     # Third party apps
     'rest_framework',
@@ -75,17 +85,29 @@ TEMPLATES = [
     },
 ]
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'pathfinders_db'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST', 'pathfinders.c3oqsqcmizjz.eu-north-1.rds.amazonaws.com'),
-        'PORT': os.getenv('DB_PORT', '5432'),
+# Database settings with development fallback
+if IS_DEVELOPMENT:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
-
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'pathfinders_db'),
+            'USER': os.getenv('DB_USER'),
+            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'HOST': os.getenv('DB_HOST', 'pathfinders.c3oqsqcmizjz.eu-north-1.rds.amazonaws.com'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+            'CONN_MAX_AGE': 60,  # persistent connections
+            'OPTIONS': {
+                'connect_timeout': 5,
+            },
+        }
+    }
 
 AUTH_USER_MODEL = 'users.User'
 
@@ -103,6 +125,16 @@ CORS_ALLOWED_ORIGINS = [
     "https://www.pathfindersgifts.com",
 ]
 
+# Add local development CORS settings
+if DEBUG:
+    CORS_ALLOWED_ORIGINS.extend([
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ])
+    CORS_ALLOW_ALL_ORIGINS = True
+
 CORS_ALLOW_CREDENTIALS = True
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
 
@@ -111,24 +143,43 @@ CSRF_TRUSTED_ORIGINS = [
     "https://www.pathfindersgifts.com",
 ]
 
-# Cookie settings for production
-CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_COOKIE_HTTPONLY = False  # Required for Next.js to access the cookie
-CSRF_COOKIE_SECURE = True  # Important for HTTPS
-CSRF_COOKIE_DOMAIN = '.pathfindersgifts.com'  # Add this line
-CSRF_USE_SESSIONS = False
-CSRF_COOKIE_NAME = 'csrftoken'
+# Add local trusted origins for development
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS.extend([
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ])
 
-# Session settings
-SESSION_COOKIE_SAMESITE = 'Lax'
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SECURE = True  # Important for HTTPS
-SESSION_COOKIE_DOMAIN = '.pathfindersgifts.com'  # Add this line
+# Cookie settings - relaxed for development
+if IS_DEVELOPMENT:
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_HTTPONLY = False
+    CSRF_COOKIE_SECURE = False
+    CSRF_COOKIE_DOMAIN = None
+    CSRF_USE_SESSIONS = False
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SECURE = False
+    SESSION_COOKIE_DOMAIN = None
+else:
+    # Production cookie settings
+    CSRF_COOKIE_SAMESITE = 'Lax'
+    CSRF_COOKIE_HTTPONLY = False  # Required for Next.js to access the cookie
+    CSRF_COOKIE_SECURE = True  # Important for HTTPS
+    CSRF_COOKIE_DOMAIN = '.pathfindersgifts.com'
+    CSRF_USE_SESSIONS = False
+    CSRF_COOKIE_NAME = 'csrftoken'
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SECURE = True  # Important for HTTPS
+    SESSION_COOKIE_DOMAIN = '.pathfindersgifts.com'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 FASTAPI_SETTINGS = {
-    'HOST': 'http://127.0.0.1:8001',
+    'HOST': os.getenv('FASTAPI_HOST', 'http://127.0.0.1:8001'),
     'ENDPOINTS': {
         'CALCULATE_GIFTS': '/calculate-gifts/',
         'SAVE_PROGRESS': '/progress/save/',
@@ -143,7 +194,7 @@ DATABASES['default']['TEST'] = {
     'NAME': 'test_pathfinders_db',
 }
 
-FASTAPI_URL = 'http://127.0.0.1:8001'
+FASTAPI_URL = os.getenv('FASTAPI_URL', 'http://127.0.0.1:8001')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -154,27 +205,51 @@ REST_FRAMEWORK = {
     ],
 }
 
-# Cache configuration for ElastiCache
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-        'LOCATION': os.getenv('REDIS_URL', 'redis://pathcache.xxxxx.ng.0001.eun1.cache.amazonaws.com:6379'),
+# Cache configuration
+if DEBUG or IS_DEVELOPMENT:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+        }
     }
-}
+else:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': os.getenv('REDIS_URL', 'redis://pathcache.xxxxx.ng.0001.eun1.cache.amazonaws.com:6379'),
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'SOCKET_CONNECT_TIMEOUT': 5,
+                'SOCKET_TIMEOUT': 5,
+                'CONNECTION_POOL_KWARGS': {'max_connections': 100},
+                'RETRY_ON_TIMEOUT': True,
+            }
+        }
+    }
 
-# AWS S3 settings for static/media files
-AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
-AWS_S3_REGION_NAME = 'eu-north-1'
-AWS_DEFAULT_ACL = 'public-read'
-AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+# AWS S3 settings - Only use in production
+if IS_PRODUCTION:
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+    AWS_S3_REGION_NAME = 'eu-north-1'
+    AWS_DEFAULT_ACL = 'public-read'
+    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+    
+    # SSL redirect only in production
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+else:
+    # Disable SSL redirect and HSTS in development
+    SECURE_SSL_REDIRECT = False
+    SECURE_HSTS_SECONDS = 0
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
 
-SECURE_SSL_REDIRECT = True
-SECURE_HSTS_SECONDS = 31536000  # 1 year
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
-
+# Logging configuration
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -186,8 +261,13 @@ LOGGING = {
     'loggers': {
         'django.request': {
             'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': 'DEBUG' if DEBUG else 'INFO',
             'propagate': True,
+        },
+        'django.db.backends': {
+            'handlers': ['console'],
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': False,
         },
     },
 }

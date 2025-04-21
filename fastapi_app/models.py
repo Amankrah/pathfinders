@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+from datetime import datetime
 
 class Answer(BaseModel):
     question_id: int
@@ -9,6 +10,9 @@ class Answer(BaseModel):
 class AssessmentRequest(BaseModel):
     user_id: int | None = None
     answers: List[Answer]
+    is_counselor_session: bool = False
+    counselor_notes: Optional[str] = None
+    session_date: Optional[datetime] = None
 
 class GiftDescription(BaseModel):
     gift: str

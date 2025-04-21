@@ -21,6 +21,7 @@ from users.views import UserViewSet, ProfileViewSet, LoginView, LogoutView, Csrf
 from assessments.views import QuestionViewSet, AssessmentViewSet
 from books.views import BookViewSet, CareerChoiceViewSet, CareerResearchNoteViewSet
 from core.views import serve_frontend, health_check
+from counselors.views import CounselorViewSet
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='users')
@@ -30,6 +31,7 @@ router.register(r'assessments', AssessmentViewSet, basename='assessment')
 router.register(r'books', BookViewSet, basename='book')
 router.register(r'career-choices', CareerChoiceViewSet, basename='career-choice')
 router.register(r'career-notes', CareerResearchNoteViewSet, basename='career-note')
+router.register(r'counselors', CounselorViewSet, basename='counselor')
 
 urlpatterns = [
     path('admin/', admin.site.urls),

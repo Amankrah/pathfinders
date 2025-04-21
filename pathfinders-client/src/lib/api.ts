@@ -1,23 +1,31 @@
 import axios from 'axios';
+import { API_CONFIG, AUTH_CONFIG } from './config';
 
-const baseURL = 'https://pathfindersgifts.com';
+// Use environment-aware base URL from config
+const baseURL = API_CONFIG.baseUrl;
 
 export const api = axios.create({
   baseURL,
   withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  xsrfCookieName: 'csrftoken',
+  headers: API_CONFIG.defaultHeaders,
+  timeout: API_CONFIG.timeout,
+  xsrfCookieName: AUTH_CONFIG.cookieNames.csrfToken,
   xsrfHeaderName: 'X-CSRFToken',
 });
 
+// Helper to get CSRF token from cookies
+const getCSRFToken = () => {
+  if (typeof document === 'undefined') return null; // Server-side rendering check
+  
+  return document.cookie
+    .split('; ')
+    .find(row => row.startsWith(`${AUTH_CONFIG.cookieNames.csrfToken}=`))
+    ?.split('=')[1];
+};
+
 // Update the request interceptor
 api.interceptors.request.use((config) => {
-  const csrfToken = document.cookie
-    .split('; ')
-    .find(row => row.startsWith('csrftoken='))
-    ?.split('=')[1];
+  const csrfToken = getCSRFToken();
 
   if (csrfToken) {
     config.headers['X-CSRFToken'] = csrfToken;
@@ -34,12 +42,12 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 403 && !originalRequest._retry) {
+    if (error.response?.status === 403 && !originalRequest._retry && API_CONFIG.features.enableTokenRefresh) {
       originalRequest._retry = true;
       
       try {
         // Get a fresh CSRF token
-        const csrfResponse = await api.get('/api/csrf/');
+        const csrfResponse = await api.get(`${API_CONFIG.apiPath}/csrf/`);
         const newCsrfToken = csrfResponse.data.csrfToken;
         
         // Update the token in the original request
@@ -55,3 +63,24 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 ); 
+
+// Export API endpoints in a type-safe way
+export const endpoints = {
+  auth: {
+    login: `${API_CONFIG.apiPath}/auth/login/`,
+    logout: `${API_CONFIG.apiPath}/auth/logout/`,
+    register: `${API_CONFIG.apiPath}/auth/register/`,
+    profile: `${API_CONFIG.apiPath}/users/profile/`,
+  },
+  assessments: {
+    list: `${API_CONFIG.apiPath}/assessments/`,
+    start: `${API_CONFIG.apiPath}/assessments/start/`,
+    submit: `${API_CONFIG.apiPath}/assessments/submit/`,
+    results: `${API_CONFIG.apiPath}/assessments/latest-results/`,
+  },
+  counselors: {
+    dashboard: `${API_CONFIG.apiPath}/counselors/dashboard/`,
+    users: `${API_CONFIG.apiPath}/counselors/my-users/`,
+    userDetails: (userId: string) => `${API_CONFIG.apiPath}/counselors/user-details/${userId}/`,
+  },
+}; 
