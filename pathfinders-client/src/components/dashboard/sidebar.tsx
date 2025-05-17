@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Book, BookOpen, Home, UserCircle, ClipboardCheck, Target } from 'lucide-react';
+import { Book, BookOpen, Home, UserCircle, ClipboardCheck, Target, X } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
+import { useMobileMenu } from '@/contexts/mobile-menu-context';
+import { useEffect } from 'react';
 
 // Helper function to extract book ID from pathname
 const getBookId = (pathname: string) => {
@@ -14,6 +16,14 @@ export function Sidebar() {
   const pathname = usePathname();
   const bookId = getBookId(pathname);
   const { user } = useAuth();
+  const { sidebarOpen, closeSidebar, isMobile } = useMobileMenu();
+  
+  // Close sidebar on navigation on mobile
+  useEffect(() => {
+    if (isMobile) {
+      closeSidebar();
+    }
+  }, [pathname, isMobile, closeSidebar]);
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -41,9 +51,41 @@ export function Sidebar() {
     { name: 'Profile', href: '/dashboard/profile', icon: UserCircle },
   ];
 
+  if (isMobile && !sidebarOpen) {
+    return null;
+  }
+
   return (
-    <div className="fixed top-16 left-0 bottom-0 w-64 bg-white border-r border-slate-200 
-      overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 hover:scrollbar-thumb-slate-300">
+    <div 
+      className={cn(
+        "fixed z-40 bg-white border-r border-slate-200 overflow-y-auto",
+        "scrollbar-thin scrollbar-thumb-slate-200 hover:scrollbar-thumb-slate-300",
+        "transition-all duration-300 ease-in-out",
+        isMobile 
+          ? "top-0 left-0 bottom-0 w-64 shadow-lg" 
+          : "top-16 left-0 bottom-0 w-64"
+      )}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {isMobile && (
+        <div className="flex justify-between items-center p-4 border-b border-slate-200">
+          <Link 
+            href="/dashboard" 
+            className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-blue-600 
+              text-transparent bg-clip-text"
+          >
+            Pathfinders
+          </Link>
+          <button 
+            onClick={closeSidebar}
+            className="p-2 rounded-lg hover:bg-slate-100 text-slate-500"
+            aria-label="Close menu"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      )}
+      
       <nav className="p-4">
         <div className="space-y-1">
           {navigation.map((item) => (

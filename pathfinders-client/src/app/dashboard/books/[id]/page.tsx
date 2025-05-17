@@ -8,7 +8,7 @@ import { CareerBookmarks } from '@/components/books/career-bookmarks';
 import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/ui/loading';
 import { booksApi } from '@/services/books';
-import { BookWithProgress } from '@/types/book';
+import { BookWithProgress, ReadingProgress } from '@/types/book';
 import { toast } from 'sonner';
 import CareerPlanningPage from './career-planning/page';
 
@@ -40,6 +40,15 @@ export default function BookPage() {
 
     loadBook();
   }, [bookId]);
+
+  const handleProgressUpdate = (progress: ReadingProgress) => {
+    if (book) {
+      setBook({
+        ...book,
+        reading_progress: progress
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -84,7 +93,7 @@ export default function BookPage() {
                 className={`relative px-4 font-medium ${
                   viewMode === 'read' 
                     ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                    : 'text-white hover:text-white/90'
+                    : 'text-gray-800 hover:text-gray-900'
                 }`}
               >
                 Read
@@ -95,7 +104,7 @@ export default function BookPage() {
                 className={`relative px-4 font-medium ${
                   viewMode === 'history'
                     ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                    : 'text-white hover:text-white/90'
+                    : 'text-gray-800 hover:text-gray-900'
                 }`}
               >
                 History
@@ -106,7 +115,7 @@ export default function BookPage() {
                 className={`relative px-4 font-medium ${
                   viewMode === 'bookmarks'
                     ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                    : 'text-white hover:text-white/90'
+                    : 'text-gray-800 hover:text-gray-900'
                 }`}
               >
                 Bookmarks
@@ -117,7 +126,7 @@ export default function BookPage() {
                 className={`relative px-4 font-medium ${
                   viewMode === 'career-planning'
                     ? 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
-                    : 'text-white hover:text-white/90'
+                    : 'text-gray-800 hover:text-gray-900'
                 }`}
               >
                 Career
@@ -151,7 +160,7 @@ export default function BookPage() {
 
       {/* Content Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {viewMode === 'read' && <BookReader bookId={bookId} />}
+        {viewMode === 'read' && <BookReader bookId={bookId} onProgressUpdate={handleProgressUpdate} />}
         {viewMode === 'history' && (
           <div className="max-w-3xl mx-auto">
             <ReadingHistory bookId={bookId} />

@@ -9,18 +9,24 @@ import { CareerList } from './career-list';
 import { ReadingProgressBar } from './reading-progress-bar';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Menu, X } from 'lucide-react';
+import { useMobileMenu } from '@/contexts/mobile-menu-context';
+import { cn } from '@/lib/utils';
 
 interface BookReaderProps {
   bookId: number;
+  onProgressUpdate?: (progress: ReadingProgress) => void;
 }
 
-export function BookReader({ bookId }: BookReaderProps) {
+export function BookReader({ bookId, onProgressUpdate }: BookReaderProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [currentProgress, setCurrentProgress] = useState<ReadingProgress | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const readingStartTimeRef = useRef<Date | null>(null);
+  const [tocOpen, setTocOpen] = useState(false);
+  const { isMobile } = useMobileMenu();
 
   useEffect(() => {
     async function initializeReader() {
@@ -98,6 +104,9 @@ export function BookReader({ bookId }: BookReaderProps) {
     }
 
     setActiveCategory(categoryId);
+    if (isMobile) {
+      setTocOpen(false);
+    }
     readingStartTimeRef.current = new Date();
     try {
       const currentIndex = categories.findIndex(c => c.id === categoryId);
@@ -105,7 +114,7 @@ export function BookReader({ bookId }: BookReaderProps) {
       const newProgress = ((currentIndex + 1) / categories.length) * 100;
       
       // Update local progress state
-      setCurrentProgress(prev => prev ? {
+      const updatedProgress = (prev: ReadingProgress | null) => prev ? {
         ...prev,
         current_category: categoryId.toString(),
         completion_percentage: newProgress,
@@ -114,7 +123,15 @@ export function BookReader({ bookId }: BookReaderProps) {
         current_category: categoryId.toString(),
         completion_percentage: newProgress,
         last_accessed: null
-      });
+      };
+      
+      setCurrentProgress(updatedProgress(currentProgress));
+      
+      // Notify parent component of progress update
+      if (onProgressUpdate) {
+        const newProgressObj = updatedProgress(currentProgress);
+        onProgressUpdate(newProgressObj);
+      }
 
       await booksApi.savePosition(bookId, {
         current_category: categoryId,
@@ -146,9 +163,44 @@ export function BookReader({ bookId }: BookReaderProps) {
   const currentCategory = categories.find(c => c.id === activeCategory);
 
   return (
-    <div className="flex h-screen bg-slate-50">
-      {/* Left sidebar - Table of Contents - Made narrower */}
-      <div className="w-64 border-r border-slate-200 bg-white shadow-lg p-4 overflow-y-auto">
+    <div className="flex flex-col lg:flex-row h-screen bg-slate-50">
+      {/* Mobile ToC Toggle Button */}
+      {isMobile && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <button
+            onClick={() => setTocOpen(!tocOpen)}
+            className="p-3 bg-indigo-600 text-white rounded-full shadow-lg"
+            aria-label={tocOpen ? "Close table of contents" : "Open table of contents"}
+          >
+            {tocOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
+      )}
+
+      {/* Left sidebar - Table of Contents */}
+      <div 
+        className={cn(
+          "bg-white shadow-lg p-4 overflow-y-auto transition-all duration-300 ease-in-out",
+          "scrollbar-thin scrollbar-thumb-slate-200 hover:scrollbar-thumb-slate-300",
+          isMobile 
+            ? tocOpen 
+              ? "fixed top-0 left-0 h-full w-80 z-50"
+              : "hidden"
+            : "w-64 border-r border-slate-200"
+        )}
+      >
+        {isMobile && tocOpen && (
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-bold text-slate-900">Table of Contents</h2>
+            <button 
+              onClick={() => setTocOpen(false)}
+              className="p-2 rounded-lg hover:bg-slate-100 text-slate-500"
+              aria-label="Close menu"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        )}
         <TableOfContents 
           categories={categories}
           activeCategory={activeCategory}
@@ -156,22 +208,31 @@ export function BookReader({ bookId }: BookReaderProps) {
         />
       </div>
 
-      {/* Main content area - Wider with improved content styling */}
+      {/* Overlay for mobile ToC */}
+      {isMobile && tocOpen && (
+        <div 
+          className="fixed inset-0 bg-black/30 z-40 transition-opacity duration-300 ease-in-out"
+          onClick={() => setTocOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Main content area */}
       <div className="flex-1 flex flex-col">
         <ReadingProgressBar 
           progress={currentProgress?.completion_percentage || 0}
           category={currentCategory?.title || ''}
         />
         
-        <div className="flex-1 p-8 overflow-y-auto">
+        <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
           {currentCategory && (
-            <div className="max-w-5xl mx-auto"> {/* Increased max width */}
+            <div className="max-w-5xl mx-auto">
               {/* Category Header */}
-              <div className="mb-8">
-                <h1 className="text-3xl font-bold text-slate-900 mb-3">
+              <div className="mb-6 sm:mb-8">
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-3">
                   {currentCategory.title}
                 </h1>
-                <div className="flex items-center text-slate-600 border-b border-slate-200 pb-6">
+                <div className="flex items-center text-slate-600 border-b border-slate-200 pb-4 sm:pb-6">
                   <span className="text-sm font-medium">
                     Section {categories.findIndex(c => c.id === currentCategory.id) + 1} of {categories.length}
                   </span>
@@ -179,12 +240,12 @@ export function BookReader({ bookId }: BookReaderProps) {
               </div>
 
               {/* Main Content with improved typography and spacing */}
-              <div className="prose max-w-none mb-12">
-                <div className="text-slate-700 text-lg leading-relaxed space-y-6 
-                  bg-white rounded-xl shadow-sm border border-slate-200/50 p-8"
+              <div className="prose max-w-none mb-8 sm:mb-12">
+                <div className="text-slate-700 text-base sm:text-lg leading-relaxed space-y-4 sm:space-y-6 
+                  bg-white rounded-xl shadow-sm border border-slate-200/50 p-4 sm:p-8"
                 >
                   {currentCategory.description.split('\n').map((paragraph, idx) => (
-                    <p key={idx} className="text-lg text-slate-700">
+                    <p key={idx} className="text-base sm:text-lg text-slate-700">
                       {paragraph}
                     </p>
                   ))}
@@ -193,17 +254,17 @@ export function BookReader({ bookId }: BookReaderProps) {
                 
               {/* Careers Section */}
               {currentCategory.careers.length > 0 && (
-                <div className="mt-8 bg-white rounded-2xl shadow-lg border border-slate-200/50 overflow-hidden">
-                  <div className="bg-gradient-to-r from-slate-900 to-blue-900 p-6">
-                    <h2 className="text-xl font-semibold text-white">
+                <div className="mt-6 sm:mt-8 bg-white rounded-xl sm:rounded-2xl shadow-lg border border-slate-200/50 overflow-hidden">
+                  <div className="bg-gradient-to-r from-slate-900 to-blue-900 p-4 sm:p-6">
+                    <h2 className="text-lg sm:text-xl font-semibold text-white">
                       Career Opportunities
                     </h2>
-                    <p className="mt-1 text-slate-300 text-sm">
+                    <p className="mt-1 text-slate-300 text-xs sm:text-sm">
                       Explore potential career paths in {currentCategory.title}
                     </p>
                   </div>
                   
-                  <div className="p-6">
+                  <div className="p-4 sm:p-6">
                     <CareerList 
                       careers={currentCategory.careers}
                       bookId={bookId}
@@ -213,7 +274,7 @@ export function BookReader({ bookId }: BookReaderProps) {
               )}
 
               {/* Navigation Footer */}
-              <div className="mt-12 pt-6 border-t border-slate-200 flex justify-between items-center">
+              <div className="mt-8 sm:mt-12 pt-4 sm:pt-6 border-t border-slate-200 flex justify-between items-center">
                 {categories.findIndex(c => c.id === currentCategory.id) > 0 && (
                   <Button
                     onClick={() => {
@@ -223,8 +284,8 @@ export function BookReader({ bookId }: BookReaderProps) {
                       }
                     }}
                     variant="outline"
-                    className="px-4 py-2 bg-slate-900 text-white border-0 hover:bg-slate-800 
-                      transition-all duration-200 rounded-xl"
+                    className="px-2 sm:px-4 py-1.5 sm:py-2 bg-slate-900 text-white border-0 hover:bg-slate-800 
+                      transition-all duration-200 rounded-xl text-sm sm:text-base"
                   >
                     ← Previous Section
                   </Button>
@@ -237,7 +298,7 @@ export function BookReader({ bookId }: BookReaderProps) {
                         handleCategoryChange(categories[nextIndex].id);
                       }
                     }}
-                    className="ml-auto bg-blue-600 hover:bg-blue-700 text-white"
+                    className="ml-auto px-2 sm:px-4 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base"
                   >
                     Next Section →
                   </Button>
