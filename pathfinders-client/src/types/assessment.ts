@@ -31,7 +31,7 @@ export interface AssessmentResult {
   scores: GiftScore;
   primary_gift: string;
   secondary_gifts: string[];
-  descriptions?: GiftDescriptions;
+  descriptions: GiftDescriptions;
   last_assessment?: string;
   recommended_roles?: {
     primary_roles: string[];
@@ -47,17 +47,26 @@ export interface AssessmentLimitInfo {
   can_take_more: boolean;
 }
 
+export interface AssessmentResultsData {
+  scores: GiftScore;
+  primary_gift: string;
+  secondary_gifts: string[];
+  answers?: Answer[];
+  descriptions: GiftDescriptions;
+}
+
 export interface AssessmentSummary {
   id: number;
   title: string;
   description?: string;
-  created_at: string;
+  created_at?: string;
+  timestamp?: string;
   updated_at?: string;
   completion_status: boolean;
   counselor_notes?: string;
   is_counselor_session?: boolean;
   session_date?: string;
-  results_data?: any;
+  results_data?: AssessmentResultsData;
 }
 
 export interface UserAssessmentData {

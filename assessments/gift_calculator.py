@@ -179,7 +179,7 @@ class GiftCalculator:
             else:
                 normalized_scores[gift] = 0.0
 
-        # Convert to percentages that sum to 1 (100%)
+        # Convert to percentages that sum to 1 (100%) with higher precision
         total = sum(normalized_scores.values())
         if total > 0:
             final_scores = {}
@@ -191,25 +191,31 @@ class GiftCalculator:
             # Process all but the last gift
             for gift, score in sorted_gifts[:-1]:
                 percentage = score / total
-                rounded_score = round(percentage, 2)
+                # Increase precision to 4 decimal places
+                rounded_score = round(percentage, 4)
                 final_scores[gift] = rounded_score
                 running_total += rounded_score
             
             # Last gift gets the remaining percentage to ensure sum is exactly 1
             last_gift = sorted_gifts[-1][0]
-            final_scores[last_gift] = round(1 - running_total, 2)
+            final_scores[last_gift] = round(1 - running_total, 4)
             
             # Sort back to original order
             final_scores = dict(sorted(final_scores.items()))
         else:
             # Fallback to equal distribution if all scores are 0
-            equal_share = round(1.0 / len(normalized_scores), 2)
+            equal_share = round(1.0 / len(normalized_scores), 4)
             final_scores = {gift: equal_share for gift in normalized_scores}
 
         return final_scores
 
     def identify_gifts(self, scores: Dict[str, float], threshold_factor: float = 0.80) -> Tuple[str, List[str]]:
         """Identify primary and secondary gifts based on scores"""
+        # Debug print to show the precise scores
+        print("Debug - Gift scores with high precision:")
+        for gift, score in sorted(scores.items(), key=lambda x: x[1], reverse=True):
+            print(f"  {gift}: {score:.4f}")
+            
         # Sort gifts by score
         sorted_gifts = sorted(
             scores.items(),
@@ -220,6 +226,8 @@ class GiftCalculator:
         # Primary gift is the highest score
         primary_gift = sorted_gifts[0][0]
         highest_score = sorted_gifts[0][1]
+        
+        print(f"Debug - Primary gift selected: {primary_gift} with score {highest_score:.4f}")
 
         # Calculate threshold for secondary gifts
         threshold = highest_score * threshold_factor

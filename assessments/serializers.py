@@ -19,8 +19,9 @@ class AssessmentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Assessment
-        fields = ('id', 'user', 'timestamp', 'completion_status', 
-                 'results_data', 'gift_profile', 'can_retake', 'counselor_id', 'counselor_notes', 'is_counselor_session', 'session_date')
+        fields = ('id', 'user', 'title', 'description', 'timestamp', 'created_at', 'updated_at',
+                 'completion_status', 'results_data', 'gift_profile', 'can_retake', 
+                 'counselor_id', 'counselor_notes', 'is_counselor_session', 'session_date')
 
 class AssessmentProgressSerializer(serializers.Serializer):
     timestamp = serializers.DateTimeField()

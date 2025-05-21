@@ -370,6 +370,58 @@ class CounselorViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+    @action(detail=True, methods=['patch'], url_path='update_user')
+    def update_user(self, request, pk=None):
+        """Update information for a specific user"""
+        try:
+            # Check if relationship exists
+            relation = CounselorUserRelation.objects.get(
+                counselor=request.user.counselor_profile,
+                user_id=pk
+            )
+            
+            user = relation.user
+            
+            # Update user information
+            if 'first_name' in request.data:
+                user.first_name = request.data['first_name']
+            
+            if 'last_name' in request.data:
+                user.last_name = request.data['last_name']
+            
+            if 'email' in request.data:
+                user.email = request.data['email']
+                user.username = request.data['email']  # Update username to match email
+            
+            # Save user changes
+            user.save()
+            
+            # Update relation information
+            if 'notes' in request.data:
+                relation.notes = request.data['notes']
+            
+            if 'status' in request.data:
+                relation.status = request.data['status']
+                
+            # Save relation changes
+            relation.save()
+            
+            return Response({
+                'message': 'User updated successfully',
+                'user': {
+                    'id': user.id,
+                    'full_name': f"{user.first_name} {user.last_name}",
+                    'email': user.email,
+                    'status': relation.status,
+                    'notes': relation.notes
+                }
+            })
+        except CounselorUserRelation.DoesNotExist:
+            return Response(
+                {'error': 'User relation not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
     def _generate_assessment_code(self, user):
         # We'll implement this method later
         # It should generate a unique code for assessment

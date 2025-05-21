@@ -66,10 +66,18 @@ export const counselorAuthService = {
   setAuthToken(token: string) {
     console.log('Setting auth token:', token ? 'token present' : 'token missing');
     api.defaults.headers.common['Authorization'] = `Token ${token}`;
+    
+    // Store token in localStorage
+    if (token) {
+      localStorage.setItem('counselorToken', token);
+    }
   },
 
   clearAuthToken() {
     console.log('Clearing auth token');
     delete api.defaults.headers.common['Authorization'];
+    
+    // Remove token from localStorage
+    localStorage.removeItem('counselorToken');
   }
 }; 

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import UserAssessmentList from '@/components/counselor/UserAssessmentList';
 import { useCounselorAuth } from '@/contexts/counselor-auth-context';
 import { counselorApi } from '@/services/counselor';
+import { assessmentApi } from '@/services/assessment';
 
 interface User {
   user_id: number;
@@ -38,8 +39,50 @@ export default function CounselorUsersPage() {
     try {
       setLoading(true);
       
-      const userData = await counselorApi.getUsers();
-      setUsers(userData);
+      // Get user relationships from the counselor API
+      const userRelations = await counselorApi.getUsers();
+      console.log('User relations received:', userRelations);
+      
+      // Create an array to hold the full user data with assessment info
+      const enhancedUsers: User[] = [];
+      
+      // Process each user to get their assessment information
+      for (const relation of userRelations) {
+        try {
+          // Get assessment data for each user
+          const assessmentData = await assessmentApi.getUserAssessments(relation.user.id);
+          
+          // Combine user data with assessment data
+          enhancedUsers.push({
+            user_id: relation.user.id,
+            full_name: relation.user.first_name + ' ' + relation.user.last_name,
+            email: relation.user.email,
+            status: relation.status,
+            notes: relation.notes || '',
+            created_at: relation.created_at,
+            assessment_count: assessmentData.completed_count || 0,
+            max_limit: assessmentData.max_limit || 3,
+            can_take_more: assessmentData.can_take_more
+          });
+        } catch (err) {
+          console.error(`Error fetching assessments for user ${relation.user.id}:`, err);
+          // Add user with default assessment values if we can't get their assessment data
+          enhancedUsers.push({
+            user_id: relation.user.id,
+            full_name: relation.user.first_name + ' ' + relation.user.last_name,
+            email: relation.user.email,
+            status: relation.status,
+            notes: relation.notes || '',
+            created_at: relation.created_at,
+            assessment_count: 0,
+            max_limit: 3,
+            can_take_more: true
+          });
+        }
+      }
+      
+      console.log('Enhanced users with assessment data:', enhancedUsers);
+      setUsers(enhancedUsers);
       setError(null);
     } catch (err: any) {
       console.error('Error fetching users:', err);

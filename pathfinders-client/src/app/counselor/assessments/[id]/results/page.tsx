@@ -20,25 +20,25 @@ export default function AssessmentResultsPage({ params }: { params: { id: string
   }
 
   return (
-    <div>
-      <div className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Assessment Results</h1>
-          <div className="flex space-x-3">
-            <Link
-              href={`/counselor/assessments/${assessmentId}`}
-              className="px-4 py-2 border border-gray-300 rounded-md bg-white"
-            >
-              Details
-            </Link>
-            <button
-              onClick={() => router.back()}
-              className="px-4 py-2 border border-gray-300 rounded-md bg-white"
-            >
-              Back
-            </button>
-          </div>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Assessment Results</h1>
+        <div className="flex space-x-3">
+          <Link
+            href={`/counselor/assessments/${assessmentId}`}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md bg-white hover:bg-gray-50"
+          >
+            Details
+          </Link>
+          <button
+            onClick={() => router.back()}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md bg-white hover:bg-gray-50"
+          >
+            Back
+          </button>
         </div>
+      </div>
+      <div className="bg-gray-50 rounded-lg p-1">
         <AssessmentResults assessmentId={assessmentId} />
       </div>
     </div>

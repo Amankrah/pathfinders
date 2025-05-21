@@ -312,42 +312,104 @@ class AssessmentViewSet(viewsets.ModelViewSet):
                 assessment.is_counselor_session = True
                 assessment.counselor = request.user.counselor_profile
             
-            # Calculate results using the GiftCalculator
-            calculator = GiftCalculator()
-            scores = calculator.calculate_scores(answers)
-            primary_gift, secondary_gifts = calculator.identify_gifts(scores)
-            descriptions = calculator.get_gift_descriptions(primary_gift, secondary_gifts)
-            
-            # Update assessment with results
-            assessment.results_data = {
-                'scores': scores,
-                'primary_gift': primary_gift,
-                'secondary_gifts': secondary_gifts,
-                'descriptions': descriptions,
-                'answers': answers
+            # Format answers for FastAPI
+            formatted_data = {
+                'user_id': assessment.user.id,
+                'answers': [
+                    {
+                        'question_id': answer['question_id'],
+                        'answer': int(answer['answer']),
+                        'gift_correlation': {
+                            k.upper(): float(v)
+                            for k, v in answer['gift_correlation'].items()
+                        }
+                    }
+                    for answer in answers
+                ]
             }
-            assessment.completion_status = True
-            assessment.save()
             
-            # Create gift profile
-            gift_profile = GiftProfile.objects.create(
-                user=assessment.user,
-                assessment=assessment,
-                primary_gift=primary_gift,
-                secondary_gifts=secondary_gifts,
-                scores=scores
-            )
-            
-            # Grant book access based on identified gifts
-            BookAccessService.grant_gift_based_access(assessment.user, gift_profile)
-            
-            return Response({
-                'message': 'Assessment completed successfully',
-                'assessment_id': assessment.id,
-                'results': assessment.results_data
-            }, status=status.HTTP_200_OK)
+            # Calculate results using FastAPI client
+            client = FastAPIClient()
+            try:
+                print(f"Debug - Submitting assessment responses to FastAPI for user {assessment.user.id}")
+                # Use synchronous request
+                results = client.calculate_gifts_sync(formatted_data)
+                
+                print(f"Debug - Results from FastAPI: {results}")
+                print(f"Debug - Creating gift profile with primary: {results['primary_gift']}, secondary: {results['secondary_gifts']}")
+                
+                # Update assessment with results
+                assessment.results_data = results
+                assessment.completion_status = True
+                assessment.save()
+                
+                # Create gift profile
+                gift_profile = GiftProfile.objects.create(
+                    user=assessment.user,
+                    assessment=assessment,
+                    primary_gift=results['primary_gift'],
+                    secondary_gifts=results['secondary_gifts'],
+                    scores=results['scores']
+                )
+                
+                # Grant book access based on identified gifts
+                print(f"Debug - About to grant book access for user {assessment.user.id}")
+                print(f"Debug - Gift Profile ID: {gift_profile.id}")
+                BookAccessService.grant_gift_based_access(assessment.user, gift_profile)
+                print("Debug - Book access granted")
+                
+                return Response({
+                    'message': 'Assessment completed successfully',
+                    'assessment_id': assessment.id,
+                    'results': assessment.results_data
+                }, status=status.HTTP_200_OK)
+                
+            except ValueError as e:
+                print(f"Debug - FastAPI calculation error: {str(e)}")
+                # Fallback to local calculation if FastAPI fails
+                calculator = GiftCalculator()
+                scores = calculator.calculate_scores(answers)
+                primary_gift, secondary_gifts = calculator.identify_gifts(scores)
+                descriptions = calculator.get_gift_descriptions(primary_gift, secondary_gifts)
+                
+                # Update assessment with results
+                assessment.results_data = {
+                    'scores': scores,
+                    'primary_gift': primary_gift,
+                    'secondary_gifts': secondary_gifts,
+                    'descriptions': descriptions,
+                    'answers': answers
+                }
+                assessment.completion_status = True
+                assessment.save()
+                
+                # Create gift profile
+                gift_profile = GiftProfile.objects.create(
+                    user=assessment.user,
+                    assessment=assessment,
+                    primary_gift=primary_gift,
+                    secondary_gifts=secondary_gifts,
+                    scores=scores
+                )
+                
+                # Grant book access based on identified gifts
+                BookAccessService.grant_gift_based_access(assessment.user, gift_profile)
+                
+                return Response({
+                    'message': 'Assessment completed successfully (fallback calculation)',
+                    'assessment_id': assessment.id,
+                    'results': assessment.results_data
+                }, status=status.HTTP_200_OK)
+                
+            except Exception as e:
+                print(f"Debug - Unexpected error in FastAPI calculation: {str(e)}")
+                return Response(
+                    {'error': f"Calculation failed: {str(e)}"}, 
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
             
         except Exception as e:
+            print(f"Debug - Exception in submit_response: {str(e)}")
             return Response(
                 {'error': str(e)}, 
                 status=status.HTTP_400_BAD_REQUEST

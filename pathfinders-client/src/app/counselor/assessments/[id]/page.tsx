@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { assessmentApi } from '@/services/assessment';
 import { AssessmentSummary } from '@/types/assessment';
 import Link from 'next/link';
+import { formatDate, formatDateTime } from '@/utils/date-formatter';
 
 export default function AssessmentDetailsPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -89,10 +90,24 @@ export default function AssessmentDetailsPage({ params }: { params: { id: string
             <div>
               <h3 className="text-lg font-medium mb-2">Created</h3>
               <p className="text-gray-700">
-                {new Date(assessment.created_at).toLocaleDateString()}
+                {formatDate(assessment.created_at || assessment.timestamp)}
               </p>
+              {(assessment.created_at || assessment.timestamp) && (
+                <p className="text-xs text-gray-500">
+                  {formatDateTime(assessment.created_at || assessment.timestamp)}
+                </p>
+              )}
             </div>
           </div>
+
+          {assessment.session_date && (
+            <div className="mb-4">
+              <h3 className="text-lg font-medium mb-2">Session Date</h3>
+              <p className="text-gray-700">
+                {formatDateTime(assessment.session_date)}
+              </p>
+            </div>
+          )}
 
           {assessment.counselor_notes && (
             <div className="mb-6">

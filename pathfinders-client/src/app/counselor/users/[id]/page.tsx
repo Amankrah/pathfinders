@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { counselorApi } from '@/services/counselor';
+import { assessmentApi } from '@/services/assessment';
 import UserAssessmentList from '@/components/counselor/UserAssessmentList';
 
 interface User {
@@ -23,6 +24,11 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [assessmentLimit, setAssessmentLimit] = useState({
+    count: 0,
+    max: 3,
+    canTakeMore: true
+  });
 
   useEffect(() => {
     if (userId && !isNaN(userId)) {
@@ -35,7 +41,24 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
       setLoading(true);
       setError(null);
       
+      // Fetch user details from the counselor API
       const userData = await counselorApi.getUserDetails(userId);
+      
+      // Get assessment limit information
+      let assessmentData;
+      try {
+        assessmentData = await assessmentApi.getUserAssessments(userId);
+      } catch (err) {
+        console.error('Error fetching assessment data:', err);
+        assessmentData = { completed_count: 0, max_limit: 3, can_take_more: true };
+      }
+      
+      // Update assessment limit state
+      setAssessmentLimit({
+        count: assessmentData.completed_count || 0,
+        max: assessmentData.max_limit || 3,
+        canTakeMore: assessmentData.can_take_more
+      });
       
       // Format user data from the API response
       setUser({
@@ -44,9 +67,9 @@ export default function UserDetailsPage({ params }: { params: { id: string } }) 
         email: userData.user.email,
         status: userData.user.status,
         notes: userData.user.notes,
-        assessment_count: userData.assessments?.length || 0,
-        max_limit: 3, // Hardcoded for now
-        can_take_more: userData.assessments?.filter((a: any) => a.completion_status).length < 3
+        assessment_count: assessmentData.completed_count || 0,
+        max_limit: assessmentData.max_limit || 3,
+        can_take_more: assessmentData.can_take_more
       });
     } catch (err: any) {
       console.error('Error fetching user details:', err);

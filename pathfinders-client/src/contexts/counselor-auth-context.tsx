@@ -49,7 +49,7 @@ export function CounselorAuthProvider({ children }: { children: React.ReactNode 
     const checkAuth = () => {
       setLoading(true);
       
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('counselorToken');
       const userType = localStorage.getItem('user_type');
       
       if (token && userType === 'counselor') {
@@ -91,7 +91,7 @@ export function CounselorAuthProvider({ children }: { children: React.ReactNode 
     
     try {
       // Clear any existing tokens
-      localStorage.removeItem('token');
+      localStorage.removeItem('counselorToken');
       localStorage.removeItem('user_type');
       localStorage.removeItem('counselor_id');
       localStorage.removeItem('user_id');
@@ -102,7 +102,7 @@ export function CounselorAuthProvider({ children }: { children: React.ReactNode 
       const response = await counselorAuthService.login(credentials);
       
       // Save auth token and counselor data
-      localStorage.setItem('token', response.token);
+      localStorage.setItem('counselorToken', response.token);
       localStorage.setItem('user_type', 'counselor');
       localStorage.setItem('user_id', response.user_id);
       localStorage.setItem('counselor_id', response.counselor_id);
@@ -133,7 +133,7 @@ export function CounselorAuthProvider({ children }: { children: React.ReactNode 
   // Logout function
   const logout = useCallback(() => {
     // Clear localStorage
-    localStorage.removeItem('token');
+    localStorage.removeItem('counselorToken');
     localStorage.removeItem('user_type');
     localStorage.removeItem('counselor_id');
     localStorage.removeItem('user_id');
@@ -155,7 +155,7 @@ export function CounselorAuthProvider({ children }: { children: React.ReactNode 
     
     try {
       // Clear any existing tokens
-      localStorage.removeItem('token');
+      localStorage.removeItem('counselorToken');
       localStorage.removeItem('user_type');
       localStorage.removeItem('counselor_id');
       localStorage.removeItem('user_id');
@@ -166,7 +166,7 @@ export function CounselorAuthProvider({ children }: { children: React.ReactNode 
       const response = await counselorAuthService.register(data);
       
       // Save auth token and counselor data
-      localStorage.setItem('token', response.token);
+      localStorage.setItem('counselorToken', response.token);
       localStorage.setItem('user_type', 'counselor');
       localStorage.setItem('user_id', response.user_id);
       localStorage.setItem('counselor_id', response.counselor_id);

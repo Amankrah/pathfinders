@@ -81,9 +81,11 @@ export const endpoints = {
   counselors: {
     dashboard: `${API_CONFIG.apiPath}/counselors/dashboard/`,
     users: `${API_CONFIG.apiPath}/counselors/my_users/`,
+    registerUser: `${API_CONFIG.apiPath}/counselors/register_user/`,
     userDetails: (userId: string | number) => `${API_CONFIG.apiPath}/counselors/${userId}/user_details/`,
     userAssessments: (userId: string | number) => `${API_CONFIG.apiPath}/counselors/${userId}/user-assessments/`,
     updateNotes: (userId: string | number) => `${API_CONFIG.apiPath}/counselors/${userId}/update_notes/`,
+    updateUser: (userId: string | number) => `${API_CONFIG.apiPath}/counselors/${userId}/update_user/`,
   },
   counselorAssessments: {
     create: `${API_CONFIG.apiPath}/counselor-assessments/`,

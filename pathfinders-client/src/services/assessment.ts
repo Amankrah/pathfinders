@@ -1,6 +1,14 @@
 import { api, endpoints } from '@/lib/api';
 import { Question, Answer, AssessmentResult, AssessmentCreationData, UserAssessmentData, AssessmentSummary } from '@/types/assessment';
 
+// Helper to ensure auth token is set for counselor requests
+const ensureAuthToken = () => {
+  const token = localStorage.getItem('counselorToken');
+  if (token) {
+    api.defaults.headers.common['Authorization'] = `Token ${token}`;
+  }
+};
+
 export const assessmentApi = {
   getQuestions: async (): Promise<Question[]> => {
     const response = await api.get('/api/questions/list_all/');
@@ -55,6 +63,7 @@ export const assessmentApi = {
   // Counselor methods
   counselorSubmitResponse: async (assessmentId: number, answers: Answer[], counselorNotes: string = ''): Promise<any> => {
     try {
+      ensureAuthToken();
       const response = await api.post(
         endpoints.counselorAssessments.submitResponse(assessmentId), 
         {
@@ -74,6 +83,7 @@ export const assessmentApi = {
   
   counselorAddNotes: async (assessmentId: number, notes: string): Promise<any> => {
     try {
+      ensureAuthToken();
       const response = await api.post(
         endpoints.counselorAssessments.addNotes(assessmentId), 
         {
@@ -92,6 +102,7 @@ export const assessmentApi = {
   
   createAssessment: async (userId: number, title?: string, description?: string): Promise<any> => {
     try {
+      ensureAuthToken();
       const response = await api.post(
         endpoints.counselorAssessments.create, 
         {
@@ -113,6 +124,7 @@ export const assessmentApi = {
   // New method to get user assessments as a counselor
   getUserAssessments: async (userId: number): Promise<UserAssessmentData> => {
     try {
+      ensureAuthToken();
       const response = await api.get<UserAssessmentData>(
         endpoints.counselors.userAssessments(userId)
       );
@@ -129,6 +141,7 @@ export const assessmentApi = {
   // Method to get assessment details by ID
   getAssessmentDetails: async (assessmentId: number): Promise<AssessmentSummary> => {
     try {
+      ensureAuthToken();
       const response = await api.get(endpoints.counselorAssessments.details(assessmentId));
       return response.data;
     } catch (error: unknown) {
@@ -143,6 +156,7 @@ export const assessmentApi = {
   // Get all counselor assessments
   getCounselorAssessments: async () => {
     try {
+      ensureAuthToken();
       const response = await api.get(endpoints.counselorAssessments.list);
       return response.data;
     } catch (error: unknown) {

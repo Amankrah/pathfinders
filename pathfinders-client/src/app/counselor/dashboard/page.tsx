@@ -33,6 +33,14 @@ interface GiftProfile {
   timestamp: string;
 }
 
+interface RecentAssessment {
+  id: number;
+  title: string;
+  user_id: number;
+  user_name: string;
+  completion_status: boolean;
+}
+
 export default function CounselorDashboard() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +51,7 @@ export default function CounselorDashboard() {
     completedAssessments: 0,
     pendingAssessments: 0,
     usersAtLimit: 0,
-    recentAssessments: [] as {id: number, title: string, user_name: string, completion_status: boolean}[]
+    recentAssessments: [] as RecentAssessment[]
   });
 
   useEffect(() => {
@@ -55,7 +63,7 @@ export default function CounselorDashboard() {
       setLoading(true);
       
       // Get auth token from localStorage
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token') || localStorage.getItem('counselorToken');
       if (!token) {
         setError('Authentication token not found. Please login again.');
         setLoading(false);
@@ -68,10 +76,12 @@ export default function CounselorDashboard() {
       try {
         // Get user data using the counselor API service
         const userData = await counselorApi.getDashboard();
+        console.log('User data:', userData);
         setUsers(userData);
       
         // Get assessment data using the assessment API service
         const assessmentData = await assessmentApi.getCounselorAssessments();
+        console.log('Assessment data:', assessmentData);
       
         // Calculate dashboard stats
         const totalUsers = userData.length;
@@ -96,16 +106,57 @@ export default function CounselorDashboard() {
             usersAtLimit += 1;
           }
         });
+        
+        // Create a map of user IDs to names for easy lookup
+        const userMap = new Map<number, string>();
+        userData.forEach((user: User) => {
+          userMap.set(user.user_id, user.full_name);
+        });
+        
+        console.log('User ID to name mapping:', [...userMap.entries()]);
+        
+        // Get recent assessments with user names
+        const fetchUserDetails = async (assessmentObj: any) => {
+          if (!assessmentObj.user_name && assessmentObj.user) {
+            try {
+              // Try to get user name from the map first
+              let userName = userMap.get(assessmentObj.user);
+              
+              // If not in the map, try to fetch user details
+              if (!userName) {
+                const userDetails = await counselorApi.getUserDetails(assessmentObj.user);
+                userName = userDetails.user.full_name;
+              }
+              
+              return {
+                ...assessmentObj,
+                user_name: userName || `User #${assessmentObj.user}`
+              };
+            } catch (err) {
+              console.error(`Error fetching user details for assessment ${assessmentObj.id}:`, err);
+              return {
+                ...assessmentObj,
+                user_name: `User #${assessmentObj.user}`
+              };
+            }
+          }
+          return assessmentObj;
+        };
+        
+        // Process each assessment to ensure we have user names
+        const processedAssessments = await Promise.all(
+          assessmentData.slice(0, 5).map(fetchUserDetails)
+        );
+        
+        const recentAssessments = processedAssessments.map((assessment: any) => ({
+          id: assessment.id,
+          title: assessment.title || 'Motivational Gift Assessment',
+          user_id: assessment.user,
+          user_name: assessment.user_name || `User #${assessment.user}`,
+          completion_status: assessment.completion_status
+        }));
 
-        // Get recent assessments
-        const recentAssessments = assessmentData
-          .slice(0, 5)
-          .map((assessment: any) => ({
-            id: assessment.id,
-            title: assessment.title || 'Motivational Gift Assessment',
-            user_name: assessment.user_name,
-            completion_status: assessment.completion_status
-          }));
+        console.log('Final recent assessments:', recentAssessments);
 
         setStats({
           totalUsers,
