@@ -14,7 +14,7 @@ export default function RegisterPage() {
             <h1 className="text-4xl font-bold text-gray-900 mb-2">
               Begin Your Journey
             </h1>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-gray-600 mb-4">
               Discover your God-given motivational gifts and find your purpose
             </p>
           </div>
@@ -75,9 +75,10 @@ export default function RegisterPage() {
 
           <div className="mt-12 p-6 bg-white/10 rounded-xl">
             <p className="text-lg font-medium mb-2">
-              "Understanding your motivational gifts is the first step to finding your divine purpose."
+              "No matter your tribe or background, you are a Very Important Person on earth. 
+              Your gift is needed by all of us."
             </p>
-            <p className="text-indigo-200">Romans 12:6-8</p>
+            <p className="text-indigo-200">Pathfinders</p>
           </div>
         </div>
       </div>

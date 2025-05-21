@@ -1,7 +1,15 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const publicPaths = ['/', '/login', '/register', '/forgot-password'];
+// Public paths that don't require authentication
+const publicPaths = ['/', '/login', '/register', '/forgot-password', '/debug'];
+
+// Counselor paths that have their own authentication flow
+const counselorPaths = [
+  '/counselor-access',
+  '/counselor-access/login',
+  '/counselor-access/register'
+];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -11,7 +19,18 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check for authentication cookie
+  // Allow access to counselor paths without regular user authentication
+  if (counselorPaths.some(path => pathname.startsWith(path))) {
+    return NextResponse.next();
+  }
+
+  // Counselor dashboard paths should check for counselor token in localStorage
+  // But this check happens client-side in the CounselorLayout component
+  if (pathname.startsWith('/counselor/')) {
+    return NextResponse.next();
+  }
+
+  // Check for authentication cookie for regular user paths
   const sessionCookie = request.cookies.get('sessionid');
   const isAuthenticated = !!sessionCookie;
 

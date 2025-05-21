@@ -23,7 +23,7 @@ class Command(BaseCommand):
                 'category': 'Perception',
                 'text': 'I relate closely with very few people.',
                 'weight': 1.0,
-                'gift_correlation': {'PERCEPTION': 0.7, 'EXHORTATION': 0.2}
+                'gift_correlation': {'PERCEPTION': 1.0, 'EXHORTATION': 0.2}
             },
             {
                 'category': 'Perception',
@@ -305,13 +305,13 @@ class Command(BaseCommand):
             },
             {
                 'category': 'Giving',
-                'text': 'I am good at making money and I have both natural and God-given wisdom.',
+                'text': 'I am good at making money with both natural and divine wisdom.',
                 'weight': 1.0,
                 'gift_correlation': {'GIVING': 1.0, 'ADMINISTRATION': 0.4, 'PERCEPTION': 0.3}
             },
             {
                 'category': 'Giving',
-                'text': "I'm careful not to waste money on things and I do not allow myself to be fooled by what others tell me.",
+                'text': "I am careful not to allow others to influence me to waste money on anything",
                 'weight': 1.0,
                 'gift_correlation': {'GIVING': 1.0, 'ADMINISTRATION': 0.5, 'PERCEPTION': 0.3}
             },

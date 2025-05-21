@@ -49,6 +49,15 @@ class Assessment(models.Model):
         if not self.completion_status:
             return False
         return (timezone.now() - self.timestamp) > timedelta(days=30)
+    
+    @staticmethod
+    def has_reached_limit(user):
+        """Check if a user has reached the maximum number of assessments (3)"""
+        assessments_count = Assessment.objects.filter(
+            user=user, 
+            completion_status=True
+        ).count()
+        return assessments_count >= 3
 
 class Question(models.Model):
     assessment = models.ForeignKey(Assessment, on_delete=models.CASCADE, null=True, blank=True)

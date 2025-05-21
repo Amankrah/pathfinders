@@ -54,6 +54,8 @@ urlpatterns = [
                 'put': 'update'
             }), name='profile-detail'),
         ])),
+        path('counselors/', include('counselors.urls')),
+        path('', include('assessments.urls')),
         path('csrf/', CsrfTokenView.as_view(), name='csrf-token'),
     ])),
     # Serve frontend for all other routes

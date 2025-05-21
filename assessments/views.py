@@ -24,7 +24,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Return all active questions"""
         return Question.objects.all().order_by('id')
-
+ 
     @action(detail=False, methods=['get'])
     def list_all(self, request):
         """Get all questions for assessment"""
@@ -52,6 +52,10 @@ class AssessmentViewSet(viewsets.ModelViewSet):
         return queryset.filter(user=self.request.user)
 
     def perform_create(self, serializer):
+        # Check if user has reached the assessment limit before creating a new one
+        if not hasattr(self.request.user, 'counselor_profile') and Assessment.has_reached_limit(self.request.user):
+            raise ValueError("You have reached the maximum limit of 3 assessments")
+            
         if hasattr(self.request.user, 'counselor_profile'):
             serializer.save(
                 counselor=self.request.user.counselor_profile,
@@ -59,6 +63,12 @@ class AssessmentViewSet(viewsets.ModelViewSet):
             )
         else:
             serializer.save(user=self.request.user)
+    
+    def create(self, request, *args, **kwargs):
+        try:
+            return super().create(request, *args, **kwargs)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['get'])
     def get_questions(self, request, pk=None):
@@ -78,6 +88,13 @@ class AssessmentViewSet(viewsets.ModelViewSet):
     def submit(self, request):
         """Submit assessment answers"""
         try:
+            # Check if user has reached the assessment limit
+            if Assessment.has_reached_limit(request.user):
+                return Response(
+                    {'error': "You have reached the maximum limit of 3 assessments"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
             answers = request.data.get('answers', [])
             if not answers:
                 return Response(
@@ -234,6 +251,13 @@ class AssessmentViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     async def submit_assessment(self, request, pk=None):
+        # Check if user has reached the assessment limit
+        if Assessment.has_reached_limit(request.user):
+            return Response(
+                {'error': "You have reached the maximum limit of 3 assessments"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
         assessment = self.get_object()
         client = FastAPIClient()
         
@@ -264,6 +288,15 @@ class AssessmentViewSet(viewsets.ModelViewSet):
         assessment = self.get_object()
         
         try:
+            # If a counselor is submitting, skip the limit check
+            if not hasattr(request.user, 'counselor_profile'):
+                # Check if user has reached the assessment limit
+                if Assessment.has_reached_limit(assessment.user):
+                    return Response(
+                        {'error': "The user has reached the maximum limit of 3 assessments"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
             # Validate the answers
             answers = request.data.get('answers', [])
             if not answers:
@@ -273,7 +306,7 @@ class AssessmentViewSet(viewsets.ModelViewSet):
                 )
             
             # Add counselor context to responses if applicable
-            if hasattr(request.request.user, 'counselor_profile'):
+            if hasattr(request.user, 'counselor_profile'):
                 assessment.counselor_notes = request.data.get('counselor_notes', '')
                 assessment.session_date = timezone.now()
                 assessment.is_counselor_session = True
@@ -335,4 +368,21 @@ class AssessmentViewSet(viewsets.ModelViewSet):
         return Response({
             "message": "Notes added successfully",
             "assessment": AssessmentSerializer(assessment).data
+        })
+
+    @action(detail=False, methods=['get'])
+    def assessment_count(self, request):
+        """Get the number of assessments a user has taken and the maximum limit"""
+        if not request.user.is_authenticated:
+            return Response({'error': 'Authentication required'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+        completed_count = Assessment.objects.filter(
+            user=request.user,
+            completion_status=True
+        ).count()
+        
+        return Response({
+            'completed_assessments': completed_count,
+            'max_limit': 3,
+            'can_take_more': completed_count < 3
         })

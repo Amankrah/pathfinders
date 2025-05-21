@@ -13,6 +13,33 @@ class CounselorSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'professional_title', 'institution', 
                  'qualification', 'phone_number', 'bio', 'is_active']
 
+class CounselorRegistrationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    confirm_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+    professional_title = serializers.CharField()
+    institution = serializers.CharField()
+    qualification = serializers.CharField()
+    phone_number = serializers.CharField()
+    bio = serializers.CharField(required=False, allow_blank=True)
+    
+    def validate(self, data):
+        # Check if passwords match
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError("Passwords do not match")
+        
+        # Check if email is already in use
+        if User.objects.filter(email=data['email']).exists():
+            raise serializers.ValidationError("Email address is already in use")
+        
+        return data
+
+class CounselorLoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+
 class CounselorUserRegistrationSerializer(serializers.Serializer):
     email = serializers.EmailField()
     first_name = serializers.CharField()
@@ -49,6 +76,9 @@ class CounselorDashboardUserSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField()
     assessments = AssessmentSummarySerializer(many=True)
     gift_profile = GiftProfileSummarySerializer(allow_null=True)
+    assessment_count = serializers.IntegerField(required=False)
+    max_limit = serializers.IntegerField(required=False)
+    can_take_more = serializers.BooleanField(required=False)
 
 class UserDetailSerializer(serializers.Serializer):
     user = serializers.DictField()

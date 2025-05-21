@@ -80,7 +80,17 @@ export const endpoints = {
   },
   counselors: {
     dashboard: `${API_CONFIG.apiPath}/counselors/dashboard/`,
-    users: `${API_CONFIG.apiPath}/counselors/my-users/`,
-    userDetails: (userId: string) => `${API_CONFIG.apiPath}/counselors/user-details/${userId}/`,
+    users: `${API_CONFIG.apiPath}/counselors/my_users/`,
+    userDetails: (userId: string | number) => `${API_CONFIG.apiPath}/counselors/${userId}/user_details/`,
+    userAssessments: (userId: string | number) => `${API_CONFIG.apiPath}/counselors/${userId}/user-assessments/`,
+    updateNotes: (userId: string | number) => `${API_CONFIG.apiPath}/counselors/${userId}/update_notes/`,
   },
+  counselorAssessments: {
+    create: `${API_CONFIG.apiPath}/counselor-assessments/`,
+    list: `${API_CONFIG.apiPath}/counselor-assessments/`,
+    details: (id: string | number) => `${API_CONFIG.apiPath}/counselor-assessments/${id}/`,
+    submitResponse: (id: string | number) => `${API_CONFIG.apiPath}/counselor-assessments/${id}/submit_response/`,
+    addNotes: (id: string | number) => `${API_CONFIG.apiPath}/counselor-assessments/${id}/add_counselor_notes/`,
+    conduct: (id: string | number) => `${API_CONFIG.apiPath}/counselor-assessments/${id}/conduct/`,
+  }
 }; 

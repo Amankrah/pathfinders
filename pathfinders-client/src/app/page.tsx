@@ -1,9 +1,13 @@
 import Link from 'next/link';
-import { ArrowRight, Gift, BookOpen, Target, Users, Sparkles } from 'lucide-react';
+import { ArrowRight, Gift, BookOpen, Target, Users, Sparkles, Lock } from 'lucide-react';
+import Header from '@/components/Header';
 
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-100 to-white">
+      {/* Navigation */}
+      <Header />
+
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center">
@@ -12,8 +16,13 @@ export default function LandingPage() {
             <span className="text-indigo-600"> God-Given Gifts</span>
           </h1>
           <p className="mt-3 max-w-3xl mx-auto text-xl text-gray-600 leading-relaxed">
-            Unlock your motivational gifts from Romans 12:6-8 to find your perfect career fit 
-            and ministry purpose through personalized assessment and expert guidance.
+            You are about to embark on an exciting adventure that may bring a positive change 
+            to your life. God has made each person unique with specific gifts. Your life could be 
+            a tragic waste if you fail to discover and use these gifts as God planned for you.
+          </p>
+          <p className="mt-4 max-w-3xl mx-auto text-xl text-gray-600 leading-relaxed">
+            No matter your background, you are a Very Important Person on earth. Your gift is 
+            needed by all of us - discover it, develop it, and excel in its operation.
           </p>
           <div className="mt-10 flex justify-center gap-4">
             <Link 
@@ -44,7 +53,7 @@ export default function LandingPage() {
               Your Path to Career and Ministry Purpose
             </h2>
             <p className="mt-4 text-xl text-gray-600">
-              A guided journey to align your motivational gifts with your perfect career
+              Our personality discovery test is the first step to help you find out the gift or potential God has placed in you
             </p>
           </div>
 
@@ -194,17 +203,115 @@ export default function LandingPage() {
           <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
             Discover how your motivational gifts can guide you to your perfect career and ministry role.
           </p>
-          <Link 
-            href="/register" 
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-8 py-4 
-              text-lg font-semibold text-white shadow-lg hover:bg-indigo-700 
-              transition-all duration-200"
-          >
-            Begin Your Discovery
-            <ArrowRight className="w-5 h-5" />
-          </Link>
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <Link 
+              href="/register" 
+              className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-8 py-4 
+                text-lg font-semibold text-white shadow-lg hover:bg-indigo-700 
+                transition-all duration-200"
+            >
+              Begin Your Discovery
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+            <Link 
+              href="/counselor-access" 
+              className="inline-flex items-center gap-2 rounded-lg bg-gray-100 px-8 py-4 
+                text-lg font-semibold text-gray-800 shadow-md hover:bg-gray-200
+                transition-all duration-200"
+            >
+              <Lock className="w-5 h-5" />
+              Counselor Access
+            </Link>
+          </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <h3 className="text-xl font-bold mb-4">Pathfinders</h3>
+              <p className="text-gray-400">
+                Discover your God-given gifts and find your purpose in both ministry and career.
+              </p>
+            </div>
+            <div>
+              <h4 className="text-lg font-medium mb-4">Quick Links</h4>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/about" className="text-gray-400 hover:text-white">
+                    About Us
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/resources" className="text-gray-400 hover:text-white">
+                    Resources
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contact" className="text-gray-400 hover:text-white">
+                    Contact
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-lg font-medium mb-4">For Users</h4>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/register" className="text-gray-400 hover:text-white">
+                    Sign Up
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/login" className="text-gray-400 hover:text-white">
+                    Login
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/assessments" className="text-gray-400 hover:text-white">
+                    Take Assessment
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="text-lg font-medium mb-4">For Counselors</h4>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/counselor-access/login" className="text-gray-400 hover:text-white">
+                    Counselor Login
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/counselor-access/register" className="text-gray-400 hover:text-white">
+                    Register as Counselor
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/counselor-resources" className="text-gray-400 hover:text-white">
+                    Counseling Resources
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-12 border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
+            <p className="text-gray-400">
+              © {new Date().getFullYear()} Pathfinders. All rights reserved.
+            </p>
+            <div className="mt-4 md:mt-0">
+              <Link href="/privacy" className="text-gray-400 hover:text-white mr-4">
+                Privacy Policy
+              </Link>
+              <Link href="/terms" className="text-gray-400 hover:text-white">
+                Terms of Service
+              </Link>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

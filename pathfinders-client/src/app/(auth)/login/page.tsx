@@ -6,13 +6,14 @@ import { useAuth } from '@/contexts/auth-context';
 import { Loading } from '@/components/ui/loading';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, Users, ArrowRight } from 'lucide-react';
+import { Sparkles, Users, ArrowRight, Lock } from 'lucide-react';
 
 export default function LoginPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
+    // Redirect if already logged in
     if (user) {
       router.push('/dashboard');
     }
@@ -62,9 +63,10 @@ export default function LoginPage() {
 
           <div className="mt-12 p-6 bg-white/10 rounded-xl">
             <p className="text-lg font-medium mb-2">
-              "For as we have many members in one body, and all members have not the same office..."
+              "Your life could be a tragic waste if you fail to discover and use your gift as God 
+              planned it for you."
             </p>
-            <p className="text-indigo-200">Romans 12:4</p>
+            <p className="text-indigo-200">Pathfinders</p>
           </div>
         </div>
       </div>
@@ -76,14 +78,14 @@ export default function LoginPage() {
             <h1 className="text-4xl font-bold text-gray-900 mb-2">
               Welcome Back
             </h1>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-gray-600 mb-4">
               Continue your journey of purpose discovery
             </p>
           </div>
 
           <LoginForm />
 
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center space-y-4">
             <p className="text-sm text-gray-600">
               New to Pathfinders?{' '}
               <Link
@@ -95,6 +97,20 @@ export default function LoginPage() {
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </p>
+            
+            <div className="pt-4 border-t border-gray-200">
+              <p className="text-sm text-gray-500">
+                Are you a counselor?{' '}
+                <Link
+                  href="/counselor-access"
+                  className="font-medium text-indigo-600 hover:text-indigo-500 
+                    transition-colors duration-200 inline-flex items-center gap-1"
+                >
+                  <Lock className="w-4 h-4" />
+                  Counselor login
+                </Link>
+              </p>
+            </div>
           </div>
         </div>
       </div>

@@ -1,22 +1,106 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, authenticate
 from django.db import transaction
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Count
+from rest_framework.authtoken.models import Token
 from .models import Counselor, CounselorUserRelation
 from .serializers import (
     CounselorSerializer, 
     CounselorUserRegistrationSerializer,
     CounselorUserRelationSerializer,
     CounselorDashboardUserSerializer, 
-    UserDetailSerializer
+    UserDetailSerializer,
+    CounselorRegistrationSerializer,
+    CounselorLoginSerializer
 )
 from assessments.models import Assessment, GiftProfile
 # Remove importing serializers from assessments to break circular dependency
 # from assessments.serializers import AssessmentSerializer, GiftProfileSerializer
+import string
+import random
 
 User = get_user_model()
+
+def generate_random_password(length=12):
+    """Generate a secure random password"""
+    characters = string.ascii_letters + string.digits + string.punctuation
+    return ''.join(random.choice(characters) for _ in range(length))
+
+class CounselorAuthViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.AllowAny]
+
+    @action(detail=False, methods=['post'], url_path='register')
+    def register(self, request):
+        serializer = CounselorRegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                with transaction.atomic():
+                    # Create user account
+                    user_data = {
+                        'email': serializer.validated_data['email'],
+                        'username': serializer.validated_data['email'],
+                        'password': serializer.validated_data['password'],
+                        'first_name': serializer.validated_data['first_name'],
+                        'last_name': serializer.validated_data['last_name'],
+                    }
+                    user = User.objects.create_user(**user_data)
+                    
+                    # Create counselor profile
+                    counselor = Counselor.objects.create(
+                        user=user,
+                        professional_title=serializer.validated_data['professional_title'],
+                        institution=serializer.validated_data['institution'],
+                        qualification=serializer.validated_data['qualification'],
+                        phone_number=serializer.validated_data['phone_number'],
+                        bio=serializer.validated_data.get('bio', '')
+                    )
+                    
+                    # Generate auth token - Fix the token creation
+                    token = Token.objects.create(user=user)
+                    
+                    return Response({
+                        'token': token.key,
+                        'user_id': user.id,
+                        'email': user.email,
+                        'counselor_id': counselor.id
+                    }, status=status.HTTP_201_CREATED)
+            except Exception as e:
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['post'], url_path='login')
+    def login(self, request):
+        serializer = CounselorLoginSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.validated_data['email']
+            password = serializer.validated_data['password']
+            
+            user = authenticate(username=email, password=password)
+            
+            if not user:
+                return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # Check if user is a counselor
+            try:
+                counselor = Counselor.objects.get(user=user)
+            except Counselor.DoesNotExist:
+                return Response({'error': 'User is not a counselor'}, status=status.HTTP_403_FORBIDDEN)
+            
+            # Generate or get auth token
+            token, created = Token.objects.get_or_create(user=user)
+            
+            return Response({
+                'token': token.key,
+                'user_id': user.id,
+                'email': user.email,
+                'counselor_id': counselor.id,
+                'name': f"{user.first_name} {user.last_name}",
+                'professional_title': counselor.professional_title
+            })
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class CounselorViewSet(viewsets.ModelViewSet):
     serializer_class = CounselorSerializer
@@ -41,12 +125,13 @@ class CounselorViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 # Create user with random password
+                random_password = generate_random_password()
                 user = User.objects.create_user(
                     username=serializer.validated_data['email'],
                     email=serializer.validated_data['email'],
                     first_name=serializer.validated_data['first_name'],
                     last_name=serializer.validated_data['last_name'],
-                    password=User.objects.make_random_password()
+                    password=random_password
                 )
 
                 # Create counselor-user relation
@@ -86,6 +171,57 @@ class CounselorViewSet(viewsets.ModelViewSet):
         serializer = CounselorUserRelationSerializer(relations, many=True)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['get'], url_path='user-assessments')
+    def user_assessments(self, request, pk=None):
+        """Get assessments for a specific user with limit information"""
+        try:
+            # Check if relationship exists
+            relation = CounselorUserRelation.objects.get(
+                counselor=request.user.counselor_profile,
+                user_id=pk
+            )
+            
+            user = relation.user
+            
+            # Get assessments
+            assessments = Assessment.objects.filter(user=user).order_by('-created_at')
+            
+            # Count completed assessments
+            completed_count = assessments.filter(completion_status=True).count()
+            
+            # Get the maximum assessment limit
+            max_limit = 3  # Hardcoded for now, could be made configurable
+            
+            # Format assessment data
+            assessment_data = []
+            for assessment in assessments:
+                assessment_data.append({
+                    'id': assessment.id,
+                    'title': assessment.title or 'Motivational Gift Assessment',
+                    'description': assessment.description,
+                    'created_at': assessment.created_at,
+                    'updated_at': assessment.updated_at,
+                    'completion_status': assessment.completion_status,
+                    'counselor_notes': assessment.counselor_notes,
+                    'is_counselor_session': assessment.is_counselor_session,
+                    'session_date': assessment.session_date,
+                    'results_data': assessment.results_data if assessment.completion_status else None
+                })
+            
+            return Response({
+                'user_id': user.id,
+                'assessments': assessment_data,
+                'completed_count': completed_count,
+                'max_limit': max_limit,
+                'can_take_more': completed_count < max_limit
+            })
+            
+        except CounselorUserRelation.DoesNotExist:
+            return Response(
+                {'error': 'User relation not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
     @action(detail=False, methods=['get'])
     def dashboard(self, request):
         """Get all dashboard data for counselor"""
@@ -116,6 +252,12 @@ class CounselorViewSet(viewsets.ModelViewSet):
 
         data = []
         for relation in relations:
+            # Count completed assessments
+            completed_count = Assessment.objects.filter(
+                user=relation.user, 
+                completion_status=True
+            ).count()
+            
             user_data = {
                 'user_id': relation.user.id,
                 'full_name': f"{relation.user.first_name} {relation.user.last_name}",
@@ -124,7 +266,10 @@ class CounselorViewSet(viewsets.ModelViewSet):
                 'notes': relation.notes,
                 'created_at': relation.created_at,
                 'assessments': [],
-                'gift_profile': None
+                'gift_profile': None,
+                'assessment_count': completed_count,
+                'max_limit': 3,
+                'can_take_more': completed_count < 3
             }
 
             # Add latest assessment data
