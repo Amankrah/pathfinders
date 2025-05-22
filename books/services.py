@@ -56,7 +56,7 @@ class BookAccessService:
                     }
                 )
             
-            print("Debug - Book access grant completed successfully")
+            print(f"Debug - Book access grant completed successfully for user {user.id}")
         except Exception as e:
             print(f"Error in grant_gift_based_access: {str(e)}")
             raise

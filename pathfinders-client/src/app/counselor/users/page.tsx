@@ -115,8 +115,8 @@ export default function CounselorUsersPage() {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700 mx-auto"></div>
-          <p className="mt-3 text-gray-600">Loading users...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-800 mx-auto"></div>
+          <p className="mt-3 text-gray-700">Loading users...</p>
         </div>
       </div>
     );
@@ -125,17 +125,17 @@ export default function CounselorUsersPage() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Manage Users</h1>
+        <h1 className="text-2xl font-bold text-black">Manage Users</h1>
         <Link
           href="/counselor/users/register"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-700 hover:bg-blue-800"
         >
           Register New User
         </Link>
       </div>
 
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        <div className="bg-red-100 border border-red-500 text-red-800 px-4 py-3 rounded">
           <p className="font-bold">Error</p>
           <p>{error}</p>
         </div>
@@ -149,12 +149,12 @@ export default function CounselorUsersPage() {
               <div className="relative">
                 <input
                   type="text"
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-600"
                   placeholder="Search users..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                <div className="absolute left-3 top-3 text-gray-400">
+                <div className="absolute left-3 top-3 text-gray-500">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
@@ -163,7 +163,7 @@ export default function CounselorUsersPage() {
             </div>
             <div className="overflow-y-auto" style={{ maxHeight: '600px' }}>
               {filteredUsers.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">
+                <div className="p-4 text-center text-gray-700">
                   {searchTerm ? 'No users match your search' : 'No users found'}
                 </div>
               ) : (
@@ -171,16 +171,16 @@ export default function CounselorUsersPage() {
                   {filteredUsers.map(user => (
                     <li 
                       key={user.user_id}
-                      className={`p-4 cursor-pointer hover:bg-gray-50 ${selectedUser?.user_id === user.user_id ? 'bg-blue-50' : ''}`}
+                      className={`p-4 cursor-pointer hover:bg-gray-50 ${selectedUser?.user_id === user.user_id ? 'bg-blue-100' : ''}`}
                       onClick={() => handleUserSelect(user)}
                     >
                       <div className="flex justify-between items-start">
                         <div>
                           <p className="text-sm font-medium text-gray-900">{user.full_name}</p>
-                          <p className="text-xs text-gray-500">{user.email}</p>
+                          <p className="text-xs text-gray-700">{user.email}</p>
                         </div>
                         <div className="flex items-center">
-                          <span className={`px-2 py-1 text-xs rounded-full ${!user.can_take_more ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
+                          <span className={`px-2 py-1 text-xs rounded-full ${!user.can_take_more ? 'bg-red-200 text-red-900' : 'bg-green-200 text-green-900'}`}>
                             {user.assessment_count}/{user.max_limit}
                           </span>
                         </div>
@@ -199,46 +199,46 @@ export default function CounselorUsersPage() {
             <div className="bg-white rounded-lg shadow">
               <div className="p-6 border-b border-gray-200">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold">{selectedUser.full_name}</h2>
-                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${selectedUser.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                  <h2 className="text-xl font-semibold text-black">{selectedUser.full_name}</h2>
+                  <span className={`px-2 py-1 text-xs font-semibold rounded-full ${selectedUser.status === 'active' ? 'bg-green-200 text-green-900' : 'bg-yellow-200 text-yellow-900'}`}>
                     {selectedUser.status}
                   </span>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div>
-                    <p className="text-sm text-gray-500">Email</p>
-                    <p className="text-sm font-medium">{selectedUser.email}</p>
+                    <p className="text-sm text-gray-700">Email</p>
+                    <p className="text-sm font-medium text-black">{selectedUser.email}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Created</p>
-                    <p className="text-sm font-medium">{new Date(selectedUser.created_at).toLocaleDateString()}</p>
+                    <p className="text-sm text-gray-700">Created</p>
+                    <p className="text-sm font-medium text-black">{new Date(selectedUser.created_at).toLocaleDateString()}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Assessment Limit</p>
-                    <p className="text-sm font-medium">
+                    <p className="text-sm text-gray-700">Assessment Limit</p>
+                    <p className="text-sm font-medium text-black">
                       {selectedUser.assessment_count}/{selectedUser.max_limit}
                       {!selectedUser.can_take_more && (
-                        <span className="ml-2 text-xs text-red-600 font-medium">Limit reached</span>
+                        <span className="ml-2 text-xs text-red-800 font-medium">Limit reached</span>
                       )}
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Notes</p>
-                    <p className="text-sm font-medium">{selectedUser.notes || 'No notes'}</p>
+                    <p className="text-sm text-gray-700">Notes</p>
+                    <p className="text-sm font-medium text-black">{selectedUser.notes || 'No notes'}</p>
                   </div>
                 </div>
                 
                 <div className="flex space-x-2">
                   <Link
                     href={`/counselor/users/${selectedUser.user_id}/edit`}
-                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
+                    className="inline-flex items-center px-3 py-1.5 border border-gray-400 text-xs font-medium rounded text-gray-800 bg-white hover:bg-gray-100"
                   >
                     Edit User
                   </Link>
                   <Link
                     href={`/counselor/users/${selectedUser.user_id}/new-assessment`}
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-blue-600 hover:bg-blue-700"
+                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded text-white bg-blue-700 hover:bg-blue-800"
                   >
                     Create Assessment
                   </Link>
@@ -263,7 +263,7 @@ export default function CounselorUsersPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
               <h3 className="mt-2 text-sm font-medium text-gray-900">Select a user</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-gray-700">
                 Click on a user from the list to view their details and assessments
               </p>
             </div>
