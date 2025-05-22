@@ -64,11 +64,11 @@ const UserAssessmentList: React.FC<UserAssessmentListProps> = ({ user, refreshDa
     if (assessmentCount === null) return null;
     
     return (
-      <div className={`p-3 rounded-md mb-4 ${canTakeMore ? 'bg-blue-50' : 'bg-red-50'}`}>
+      <div className={`p-3 rounded-md mb-4 ${canTakeMore ? 'bg-blue-100' : 'bg-red-100'}`}>
         <p className="text-sm">
-          <span className="font-medium">Assessment Status:</span> {assessmentCount} of {maxAssessments} assessments completed
+          <span className="font-medium text-black">Assessment Status:</span> {assessmentCount} of {maxAssessments} assessments completed
           {!canTakeMore && (
-            <span className="block mt-1 text-red-600 font-medium">
+            <span className="block mt-1 text-red-800 font-medium">
               This user has reached their assessment limit.
               As a counselor, you can still create assessments for them.
             </span>
@@ -79,23 +79,23 @@ const UserAssessmentList: React.FC<UserAssessmentListProps> = ({ user, refreshDa
   };
 
   if (loading && assessments.length === 0) {
-    return <div className="text-gray-500">Loading assessments...</div>;
+    return <div className="text-gray-700">Loading assessments...</div>;
   }
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Assessments for {user.full_name}</h3>
+        <h3 className="text-lg font-semibold text-black">Assessments for {user.full_name}</h3>
         <button
           onClick={handleCreateAssessment}
-          className="bg-blue-600 text-white px-3 py-1 text-sm rounded-md hover:bg-blue-700"
+          className="bg-blue-700 text-white px-3 py-1 text-sm rounded-md hover:bg-blue-800"
         >
           Create New Assessment
         </button>
       </div>
       
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+        <div className="bg-red-100 border border-red-500 text-red-800 px-4 py-3 rounded">
           {error}
         </div>
       )}
@@ -110,7 +110,7 @@ const UserAssessmentList: React.FC<UserAssessmentListProps> = ({ user, refreshDa
       )}
       
       {assessments.length === 0 ? (
-        <div className="text-gray-500 p-4 bg-gray-50 rounded-md text-center">
+        <div className="text-gray-700 p-4 bg-gray-50 rounded-md text-center">
           No assessments found for this user.
         </div>
       ) : (
@@ -121,27 +121,27 @@ const UserAssessmentList: React.FC<UserAssessmentListProps> = ({ user, refreshDa
               className="border border-gray-200 rounded-md p-4 hover:bg-gray-50"
             >
               <div className="flex justify-between">
-                <h4 className="font-medium">{assessment.title}</h4>
-                <span className={`text-sm ${assessment.completion_status ? 'text-green-600' : 'text-amber-600'}`}>
+                <h4 className="font-medium text-black">{assessment.title}</h4>
+                <span className={`text-sm font-medium ${assessment.completion_status ? 'text-green-800' : 'text-amber-800'}`}>
                   {assessment.completion_status ? 'Completed' : 'Pending'}
                 </span>
               </div>
               
-              <div className="text-sm text-gray-500 mt-1">
-                Created: {new Date(assessment.created_at).toLocaleDateString()}
+              <div className="text-sm text-gray-700 mt-1">
+                Created: {assessment.created_at ? new Date(assessment.created_at).toLocaleDateString() : 'N/A'}
               </div>
               
               {assessment.counselor_notes && (
                 <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
-                  <div className="font-medium">Counselor Notes:</div>
-                  <p>{assessment.counselor_notes}</p>
+                  <div className="font-medium text-black">Counselor Notes:</div>
+                  <p className="text-gray-900">{assessment.counselor_notes}</p>
                 </div>
               )}
               
               <div className="mt-3 flex space-x-2">
                 <Link 
                   href={`/counselor/assessments/${assessment.id}`} 
-                  className="text-blue-600 text-sm hover:underline"
+                  className="text-blue-700 text-sm hover:underline font-medium"
                 >
                   View Details
                 </Link>
@@ -149,7 +149,7 @@ const UserAssessmentList: React.FC<UserAssessmentListProps> = ({ user, refreshDa
                 {assessment.completion_status && (
                   <Link 
                     href={`/counselor/assessments/${assessment.id}/results`} 
-                    className="text-blue-600 text-sm hover:underline"
+                    className="text-blue-700 text-sm hover:underline font-medium"
                   >
                     View Results
                   </Link>
@@ -158,7 +158,7 @@ const UserAssessmentList: React.FC<UserAssessmentListProps> = ({ user, refreshDa
                 {!assessment.completion_status && (
                   <Link 
                     href={`/counselor/assessments/${assessment.id}/conduct`} 
-                    className="text-blue-600 text-sm hover:underline"
+                    className="text-green-700 text-sm hover:underline font-medium"
                   >
                     Conduct Assessment
                   </Link>
