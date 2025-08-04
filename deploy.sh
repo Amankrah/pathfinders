@@ -69,6 +69,14 @@ sudo apt install -y nodejs
 node --version
 npm --version
 
+# Ensure yarn is not being used
+print_status "Ensuring npm is the package manager..."
+if command -v yarn &> /dev/null; then
+    print_warning "Yarn is installed. Using npm instead..."
+    # Uninstall yarn to prevent conflicts
+    sudo npm uninstall -g yarn 2>/dev/null || true
+fi
+
 # 2. Verify project structure
 print_status "Verifying project structure..."
 
@@ -233,7 +241,15 @@ cd $FRONTEND_DIR
 print_status "Clearing frontend cache and old builds..."
 rm -rf .next
 rm -rf node_modules/.cache
+rm -f yarn.lock yarn-error.log
+rm -rf .yarn .yarnrc .yarnrc.yml
 npm cache clean 2>/dev/null || rm -rf ~/.npm/_cacache 2>/dev/null || true
+
+# Ensure we're using npm and not yarn
+print_status "Ensuring npm package manager..."
+unset YARN_CACHE_FOLDER
+unset YARN_IGNORE_PATH
+export npm_config_package_manager=npm
 
 # Create production environment file
 if [ ! -f "$FRONTEND_DIR/.env.production" ]; then
@@ -241,16 +257,27 @@ if [ ! -f "$FRONTEND_DIR/.env.production" ]; then
     cat > $FRONTEND_DIR/.env.production << EOF
 NEXT_PUBLIC_API_URL=https://pathfindersgifts.com
 NODE_ENV=production
+# Ensure npm is used
+npm_config_package_manager=npm
 EOF
 fi
 
 # Install frontend dependencies (fresh install)
 print_status "Installing frontend dependencies (fresh install)..."
 rm -rf node_modules
+rm -f yarn.lock yarn-error.log
+
+# Verify npm is being used
+print_status "Verifying npm installation..."
+npm --version
+which npm
+
 npm ci
 
 # Build the frontend
 print_status "Building frontend for production..."
+# Ensure we're using npm explicitly
+export npm_config_package_manager=npm
 npm run build
 
 # Clear and recreate directory for built frontend

@@ -28,7 +28,7 @@ sudo chown $USER:$USER /home/ubuntu/app
 cd /home/ubuntu/app
 
 # Clone the repository
-git clone https://github.com/Dish365/pathfinders.git .
+git clone https://github.com/Amankrah/pathfinders.git
 
 # Configure production environment
 cp .env.template .env
