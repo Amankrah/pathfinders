@@ -73,7 +73,7 @@ export function RecommendedRoles({ initialRoles }: RecommendedRolesProps) {
             Primary Roles
           </h3>
           <div className="grid gap-3">
-            {roles.primary_roles.map((role) => {
+            {roles.primary_roles.map((role: string) => {
               const IconComponent = roleIcons[role] || Users;
               return (
                 <div
@@ -102,7 +102,7 @@ export function RecommendedRoles({ initialRoles }: RecommendedRolesProps) {
             Secondary Roles
           </h3>
           <div className="grid gap-3">
-            {roles.secondary_roles.map((role) => {
+            {roles.secondary_roles.map((role: string) => {
               const IconComponent = roleIcons[role] || Users;
               return (
                 <div
@@ -131,7 +131,7 @@ export function RecommendedRoles({ initialRoles }: RecommendedRolesProps) {
             Ministry Areas
           </h3>
           <div className="flex flex-wrap gap-2">
-            {roles.ministry_areas.map((area) => (
+            {roles.ministry_areas.map((area: string) => (
               <span 
                 key={area}
                 className="px-3.5 py-2 bg-[#f8fafc] text-[#0f172a] rounded-lg 

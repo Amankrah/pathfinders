@@ -27,17 +27,19 @@ export interface GiftDescriptions {
   secondary: GiftDescription[];
 }
 
+export interface RoleRecommendations {
+  primary_roles: string[];
+  secondary_roles: string[];
+  ministry_areas: string[];
+}
+
 export interface AssessmentResult {
   scores: GiftScore;
   primary_gift: string;
   secondary_gifts: string[];
   descriptions: GiftDescriptions;
   last_assessment?: string;
-  recommended_roles?: {
-    primary_roles: string[];
-    secondary_roles: string[];
-    ministry_areas: string[];
-  };
+  recommended_roles?: RoleRecommendations;
 }
 
 // New types for assessment limits and counselor functionality
@@ -53,11 +55,7 @@ export interface AssessmentResultsData {
   secondary_gifts: string[];
   answers?: Answer[];
   descriptions: GiftDescriptions;
-  recommended_roles?: {
-    primary_roles: string[];
-    secondary_roles: string[];
-    ministry_areas: string[];
-  };
+  recommended_roles?: RoleRecommendations;
 }
 
 export interface AssessmentSummary {
