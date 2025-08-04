@@ -273,7 +273,7 @@ print_status "Verifying npm installation..."
 npm --version
 which npm
 
-npm ci
+npm ci --legacy-peer-deps
 
 # Build the frontend
 print_status "Building frontend for production..."
