@@ -124,12 +124,16 @@ python -c "import fastapi; print(f'FastAPI installed')"
 # 6. Environment configuration
 print_status "Setting up environment configuration..."
 if [ ! -f "$BACKEND_DIR/.env" ]; then
-    print_warning "No .env file found. Creating from local_settings.py template..."
-    # Create a basic .env file based on local_settings.py
+    print_warning "No .env file found. Creating from template..."
+    
+    # Generate a secure Django secret key
+    DJANGO_SECRET_KEY=$(python3 -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())' 2>/dev/null || echo "your-secret-key-here")
+    
+    # Create .env file with environment variables or defaults
     cat > $BACKEND_DIR/.env << EOF
 # Django Settings
 DEBUG=False
-SECRET_KEY=your-secret-key-here
+SECRET_KEY=${DJANGO_SECRET_KEY}
 ALLOWED_HOSTS=pathfindersgifts.com,www.pathfindersgifts.com
 
 # Database
@@ -142,24 +146,26 @@ MEDIA_URL=/media/
 MEDIA_ROOT=/home/ubuntu/app/media
 
 # MTN Mobile Money Configuration
-MTN_TARGET_ENVIRONMENT=sandbox
-MTN_COLLECTION_SUBSCRIPTION_KEY=2026432ffc664e909d6ace2e4d4b24b0
-MTN_COLLECTION_PRIMARY_KEY=2026432ffc664e909d6ace2e4d4b24b0
-MTN_COLLECTION_SECONDARY_KEY=e3e05b43c2e04540a969390346beb2a0
-MTN_CALLBACK_URL=https://pathfindersgifts.com/api/core/mtn-webhook/
-MTN_CURRENCY=GHS
-MTN_MERCHANT_NUMBER=233536888387
+MTN_TARGET_ENVIRONMENT=\${MTN_TARGET_ENVIRONMENT:-sandbox}
+MTN_COLLECTION_SUBSCRIPTION_KEY=\${MTN_COLLECTION_SUBSCRIPTION_KEY:-2026432ffc664e909d6ace2e4d4b24b0}
+MTN_COLLECTION_PRIMARY_KEY=\${MTN_COLLECTION_PRIMARY_KEY:-2026432ffc664e909d6ace2e4d4b24b0}
+MTN_COLLECTION_SECONDARY_KEY=\${MTN_COLLECTION_SECONDARY_KEY:-e3e05b43c2e04540a969390346beb2a0}
+MTN_CALLBACK_URL=\${MTN_CALLBACK_URL:-https://pathfindersgifts.com/api/core/mtn-webhook/}
+MTN_CURRENCY=\${MTN_CURRENCY:-GHS}
+MTN_MERCHANT_NUMBER=\${MTN_MERCHANT_NUMBER:-233536888387}
 
 # Stripe Configuration
-STRIPE_PUBLISHABLE_KEY=pk_test_your_publishable_key
-STRIPE_SECRET_KEY=sk_test_your_secret_key
-STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+STRIPE_PUBLISHABLE_KEY=\${STRIPE_PUBLISHABLE_KEY:-pk_test_your_publishable_key}
+STRIPE_SECRET_KEY=\${STRIPE_SECRET_KEY:-sk_test_your_secret_key}
+STRIPE_WEBHOOK_SECRET=\${STRIPE_WEBHOOK_SECRET:-whsec_your_webhook_secret}
 
 # FastAPI Configuration
 FASTAPI_HOST=127.0.0.1
 FASTAPI_PORT=8001
 EOF
-    print_warning "Please edit .env file with your actual production values before continuing!"
+    
+    print_warning "Environment file created. Please review and update with your actual production values!"
+    print_warning "You can set environment variables before running this script to auto-populate values."
     read -p "Press enter when you've updated the .env file..."
 fi
 
