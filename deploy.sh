@@ -280,6 +280,11 @@ rm -f yarn.lock yarn-error.log
 rm -rf .yarn .yarnrc .yarnrc.yml
 npm cache clean 2>/dev/null || rm -rf ~/.npm/_cacache 2>/dev/null || true
 
+# Clear any existing deployment files
+sudo rm -rf /var/www/html/pathfinders
+sudo mkdir -p /var/www/html/pathfinders
+sudo chown $USER:www-data /var/www/html/pathfinders
+
 # Ensure we're using npm and not yarn
 print_status "Ensuring npm package manager..."
 unset YARN_CACHE_FOLDER
@@ -334,240 +339,24 @@ sudo chmod -R 755 /var/www/html/pathfinders
 
 print_status "Frontend build and deployment completed ✓"
 
-# 10. Nginx configuration - Single unified configuration
-print_status "Configuring Nginx with unified configuration..."
+# 10. Nginx configuration - Simple working configuration
+print_status "Configuring Nginx with simple working configuration..."
 
-# Create upstream definitions for better load balancing and maintenance
-sudo tee /etc/nginx/sites-available/pathfindersgifts.com > /dev/null << EOF
-# Upstream definitions for better maintainability
-upstream django_backend {
-    server 127.0.0.1:8000;
-}
-
-upstream fastapi_backend {
-    server 127.0.0.1:8001;
-}
-
-upstream frontend_backend {
-    server 127.0.0.1:3000;
-}
-
-# HTTP server - redirect to HTTPS
-server {
-    listen 80;
-    server_name pathfindersgifts.com www.pathfindersgifts.com;
-
-    # Allow Let's Encrypt challenges
-    location /.well-known/acme-challenge/ {
-        root /var/www/html;
-    }
-
-    # Redirect all other HTTP traffic to HTTPS
-    location / {
-        return 301 https://\$server_name\$request_uri;
-    }
-}
-
-# HTTPS server with complete routing
-server {
-    listen 443 ssl http2;
-    server_name pathfindersgifts.com www.pathfindersgifts.com;
-
-    # SSL configuration - will be managed by certbot
-    # These will be automatically configured by certbot
-    # ssl_certificate /etc/letsencrypt/live/pathfindersgifts.com/fullchain.pem;
-    # ssl_certificate_key /etc/letsencrypt/live/pathfindersgifts.com/privkey.pem;
-    # include /etc/letsencrypt/options-ssl-nginx.conf;
-    # ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
-
-    # Security headers
-    add_header X-Frame-Options DENY always;
-    add_header X-Content-Type-Options nosniff always;
-    add_header X-XSS-Protection "1; mode=block" always;
-    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
-    
-    # CORS headers for API endpoints
-    location ~ ^/(api|fastapi)/ {
-        add_header Access-Control-Allow-Origin "https://pathfindersgifts.com" always;
-        add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
-        add_header Access-Control-Allow-Headers "accept, accept-encoding, authorization, content-type, dnt, origin, user-agent, x-csrftoken, x-requested-with" always;
-        add_header Access-Control-Allow-Credentials "true" always;
-        
-        # Handle preflight requests
-        if ($request_method = OPTIONS) {
-            add_header Access-Control-Allow-Origin "https://pathfindersgifts.com" always;
-            add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
-            add_header Access-Control-Allow-Headers "accept, accept-encoding, authorization, content-type, dnt, origin, user-agent, x-csrftoken, x-requested-with" always;
-            add_header Access-Control-Allow-Credentials "true" always;
-            add_header Access-Control-Max-Age 1728000;
-            add_header Content-Type "text/plain; charset=utf-8";
-            add_header Content-Length 0;
-            return 204;
-        }
-    }
-
-    # Common proxy settings
-    proxy_set_header Host \$host;
-    proxy_set_header X-Real-IP \$remote_addr;
-    proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto \$scheme;
-    proxy_set_header X-Forwarded-Host \$server_name;
-    proxy_set_header X-Forwarded-Server \$server_name;
-    proxy_redirect off;
-    proxy_read_timeout 300;
-    proxy_connect_timeout 300;
-    proxy_send_timeout 300;
-    
-    # Next.js static files with cache
-    location /_next/static/ {
-        alias /var/www/html/pathfinders/.next/static/;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-        access_log off;
-    }
-    
-    # Django static files (admin and REST framework)
-    location ~ ^/static/(admin|rest_framework)/ {
-        alias $DJANGO_DIR/staticfiles/;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-        access_log off;
-    }
-    
-    # Frontend public static files
-    location /static/ {
-        alias /var/www/html/pathfinders/public/;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-        access_log off;
-    }
-    
-    # Django media files
-    location /media/ {
-        alias $DJANGO_DIR/media/;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-        access_log off;
-    }
-    
-    # Django Admin - handle both with and without trailing slash
-    location /admin {
-        proxy_pass http://django_backend;
-        # Add headers for Django Admin
-        proxy_set_header X-Forwarded-Host \$server_name;
-        proxy_set_header X-Forwarded-Server \$server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-    
-    location /admin/ {
-        proxy_pass http://django_backend;
-        # Add headers for Django Admin
-        proxy_set_header X-Forwarded-Host \$server_name;
-        proxy_set_header X-Forwarded-Server \$server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-    
-    # Django REST Framework API - handle both with and without trailing slash
-    location /api {
-        proxy_pass http://django_backend;
-        # Add headers for Django REST Framework
-        proxy_set_header X-Forwarded-Host \$server_name;
-        proxy_set_header X-Forwarded-Server \$server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-    
-    location /api/ {
-        proxy_pass http://django_backend;
-        # Add headers for Django REST Framework
-        proxy_set_header X-Forwarded-Host \$server_name;
-        proxy_set_header X-Forwarded-Server \$server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-    
-    # FastAPI routes - strip /fastapi prefix and pass to FastAPI backend
-    location /fastapi/ {
-        # Remove /fastapi prefix when passing to FastAPI
-        rewrite ^/fastapi/(.*) /\$1 break;
-        proxy_pass http://fastapi_backend;
-        # Add headers for FastAPI
-        proxy_set_header X-Forwarded-Host \$server_name;
-        proxy_set_header X-Forwarded-Server \$server_name;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        # Increase timeouts for FastAPI
-        proxy_read_timeout 300;
-        proxy_connect_timeout 300;
-        proxy_send_timeout 300;
-    }
-    
-    location /fastapi {
-        # Handle /fastapi without trailing slash
-        rewrite ^/fastapi$ /fastapi/ permanent;
-    }
-    
-    # Health checks - Django health check
-    location /health {
-        proxy_pass http://django_backend;
-    }
-    
-    location /health/ {
-        proxy_pass http://django_backend;
-    }
-    
-    # FastAPI health check
-    location /fastapi/health {
-        proxy_pass http://fastapi_backend/health;
-    }
-    
-    location /fastapi/health/ {
-        proxy_pass http://fastapi_backend/health/;
-    }
-    
-    # Frontend - all other routes go to Next.js (including /auth/, /dashboard/, /counselor/)
-    location / {
-        proxy_pass http://frontend_backend;
-        
-        # WebSocket support for Next.js dev features
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_cache_bypass \$http_upgrade;
-    }
-    
-    # Error pages
-    error_page 502 503 504 /50x.html;
-    location = /50x.html {
-        root /var/www/html;
-        internal;
-    }
-}
-EOF
-
-# Enable the site and test configuration
-sudo ln -sf /etc/nginx/sites-available/pathfindersgifts.com /etc/nginx/sites-enabled/
+# Clear existing nginx configurations and cache
+print_status "Clearing existing nginx configurations and cache..."
 sudo rm -f /etc/nginx/sites-enabled/default
+sudo rm -f /etc/nginx/sites-enabled/pathfindersgifts.com
+sudo rm -f /etc/nginx/sites-available/pathfindersgifts.com
+sudo rm -rf /var/cache/nginx/*
+sudo rm -rf /var/log/nginx/*.log
+sudo systemctl stop nginx 2>/dev/null || true
 
-# Test nginx configuration
-if ! sudo nginx -t; then
-    print_warning "Nginx configuration test failed - trying HTTP-only configuration..."
-    
-    # Create a simplified HTTP-only configuration
-    sudo tee /etc/nginx/sites-available/pathfindersgifts.com > /dev/null << 'EOF'
+# Clear any existing SSL configurations that might conflict
+sudo rm -f /etc/nginx/sites-available/pathfindersgifts.com-ssl
+sudo rm -f /etc/nginx/sites-enabled/pathfindersgifts.com-ssl
+
+# Create simple HTTP-only configuration that works
+sudo tee /etc/nginx/sites-available/pathfindersgifts.com > /dev/null << 'EOF'
 # HTTP-only configuration for initial setup
 server {
     listen 80;
@@ -617,8 +406,8 @@ server {
     # API routes
     location /api/ {
         proxy_pass http://127.0.0.1:8000;
-        proxy_set_header X-Forwarded-Host \$server_name;
-        proxy_set_header X-Forwarded-Server \$server_name;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Host $host;
@@ -636,8 +425,8 @@ server {
     
     location /admin/ {
         proxy_pass http://127.0.0.1:8000;
-        proxy_set_header X-Forwarded-Host \$server_name;
-        proxy_set_header X-Forwarded-Server \$server_name;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Host $host;
@@ -648,8 +437,8 @@ server {
     location /fastapi/ {
         rewrite ^/fastapi/(.*) /$1 break;
         proxy_pass http://127.0.0.1:8001;
-        proxy_set_header X-Forwarded-Host \$server_name;
-        proxy_set_header X-Forwarded-Server \$server_name;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Host $host;
@@ -664,13 +453,22 @@ server {
     }
 }
 EOF
-    
-    # Test the simplified configuration
-    if ! sudo nginx -t; then
-        print_error "Nginx configuration test failed even with simplified config"
-        exit 1
-    fi
+
+# Enable the site and test configuration
+sudo ln -sf /etc/nginx/sites-available/pathfindersgifts.com /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+
+# Test nginx configuration
+if ! sudo nginx -t; then
+    print_error "Nginx configuration test failed"
+    exit 1
 fi
+
+# Clear nginx cache and restart
+print_status "Clearing nginx cache and restarting..."
+sudo rm -rf /var/cache/nginx/*
+sudo systemctl start nginx
+sudo systemctl reload nginx
 
 print_status "Nginx configuration completed ✓"
 
