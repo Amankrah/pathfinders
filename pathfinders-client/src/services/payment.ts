@@ -158,5 +158,16 @@ export const paymentApi = {
     } catch (error: any) {
       throw new Error(error.response?.data?.error || 'Failed to validate payment');
     }
+  },
+
+  createUserCheckoutSession: async (userId: number): Promise<{ checkoutUrl: string }> => {
+    try {
+      const response = await apiClient.post('/core/create-user-checkout/', {
+        user_id: userId
+      });
+      return { checkoutUrl: response.data.checkout_url };
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Failed to create checkout session');
+    }
   }
 };

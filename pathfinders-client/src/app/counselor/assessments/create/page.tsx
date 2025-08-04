@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { counselorApi } from '@/services/counselor';
-import { paymentApi } from '@/services/payment';
 import Link from 'next/link';
 import CounselorAssessmentManager from '@/components/counselor/CounselorAssessmentManager';
 import { assessmentApi } from '@/services/assessment';
@@ -18,14 +17,12 @@ interface User {
   max_limit?: number;
   can_take_more?: boolean;
   status?: string;
-  payment_status?: 'paid' | 'unpaid';
 }
 
 export default function CreateAssessmentPage() {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [processingPayment, setProcessingPayment] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,12 +41,11 @@ export default function CreateAssessmentPage() {
       // Create an array to hold the full user data with assessment info
       const enhancedUsers: User[] = [];
       
-      // Process each user to get their assessment information and payment status
+      // Process each user to get their assessment information
       for (const relation of userRelations) {
         try {
           // Get assessment data for each user
           const assessmentData = await assessmentApi.getUserAssessments(relation.user_id);
-          const paymentStatus = await paymentApi.validatePayment(relation.user_id);
           
           // Combine user data with assessment data
           enhancedUsers.push({
@@ -59,15 +55,14 @@ export default function CreateAssessmentPage() {
             status: relation.status,
             assessment_count: assessmentData.completed_count || 0,
             max_limit: assessmentData.max_limit || 3,
-            can_take_more: assessmentData.can_take_more,
-            payment_status: paymentStatus.is_valid ? 'paid' : 'unpaid'
+            can_take_more: assessmentData.can_take_more
           });
         } catch (err) {
           console.error(`Error fetching data for user ${relation.user_id}:`, err);
         }
       }
       
-      console.log('Enhanced users with assessment and payment data:', enhancedUsers);
+      console.log('Enhanced users with assessment data:', enhancedUsers);
       setUsers(enhancedUsers);
       setError(null);
     } catch (err: any) {
@@ -78,38 +73,11 @@ export default function CreateAssessmentPage() {
     }
   };
 
-  const handlePaymentForUser = async (user: User) => {
-    try {
-      setProcessingPayment(true);
-      
-      // Create checkout session for the user
-      const { checkoutUrl } = await paymentApi.createUserCheckoutSession(user.user_id);
-      
-      // Store the current user selection in localStorage
-      localStorage.setItem('selectedUserId', user.user_id.toString());
-      
-      // Redirect to Stripe Checkout
-      window.location.href = checkoutUrl;
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to process payment');
-    } finally {
-      setProcessingPayment(false);
-    }
-  };
-
   const handleCreateAssessment = async (user: User) => {
     try {
       setLoading(true);
       
-      // Validate payment first
-      const paymentValidation = await paymentApi.validatePayment(user.user_id);
-      
-      if (!paymentValidation.is_valid) {
-        toast.error('User needs to complete payment before taking assessment');
-        return;
-      }
-
-      // Create the assessment
+      // Create the assessment directly (no payment validation needed)
       const assessment = await counselorApi.createAssessment(user.user_id);
       
       toast.success('Assessment created successfully');
@@ -190,13 +158,6 @@ export default function CreateAssessmentPage() {
                   }`}>
                     {user.assessment_count} / {user.max_limit} Assessments
                   </span>
-                  <span className={`px-2 py-1 rounded-full text-sm ${
-                    user.payment_status === 'paid'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {user.payment_status === 'paid' ? 'Paid' : 'Payment Required'}
-                  </span>
                 </div>
               </div>
             ))}
@@ -219,29 +180,15 @@ export default function CreateAssessmentPage() {
                   This user has reached their assessment limit.
                 </div>
               ) : (
-                <>
-                  {selectedUser.payment_status === 'paid' ? (
-                    <button
-                      onClick={() => handleCreateAssessment(selectedUser)}
-                      className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 
-                               focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
-                               transition-colors duration-200"
-                      disabled={loading || processingPayment}
-                    >
-                      {loading ? 'Creating...' : 'Create Assessment'}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handlePaymentForUser(selectedUser)}
-                      className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 
-                               focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2
-                               transition-colors duration-200"
-                      disabled={loading || processingPayment}
-                    >
-                      {processingPayment ? 'Processing...' : 'Process Payment for User'}
-                    </button>
-                  )}
-                </>
+                <button
+                  onClick={() => handleCreateAssessment(selectedUser)}
+                  className="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 
+                           focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
+                           transition-colors duration-200"
+                  disabled={loading}
+                >
+                  {loading ? 'Creating...' : 'Create Assessment'}
+                </button>
               )}
             </div>
           ) : (

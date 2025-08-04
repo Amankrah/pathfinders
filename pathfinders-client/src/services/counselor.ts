@@ -123,5 +123,19 @@ export const counselorApi = {
       }
       throw error;
     }
+  },
+
+  createAssessment: async (userId: number) => {
+    try {
+      ensureAuthToken();
+      const response = await api.post(endpoints.counselorAssessments.create, { user_id: userId });
+      return response.data;
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { error?: string } } };
+      if (err?.response?.data?.error) {
+        throw new Error(err.response.data.error);
+      }
+      throw error;
+    }
   }
 }; 
