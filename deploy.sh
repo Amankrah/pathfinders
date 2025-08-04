@@ -60,7 +60,7 @@ fi
 # 1. System Dependencies
 print_status "Installing system dependencies..."
 sudo apt update
-sudo apt install -y python3-pip python3-venv python3-dev nginx redis-server supervisor certbot python3-certbot-nginx sqlite3 curl
+sudo apt install -y python3-pip python3-venv python3-dev nginx supervisor certbot python3-certbot-nginx sqlite3 curl
 
 # Install Node.js 18.x for frontend
 print_status "Installing Node.js for frontend..."
@@ -144,8 +144,9 @@ DEBUG=False
 SECRET_KEY=${DJANGO_SECRET_KEY}
 ALLOWED_HOSTS=pathfindersgifts.com,www.pathfindersgifts.com
 
-# Database
+# Database - SQLite
 DATABASE_URL=sqlite:///db.sqlite3
+DATABASE_ENGINE=django.db.backends.sqlite3
 
 # Static Files
 STATIC_URL=/static/
@@ -714,8 +715,8 @@ print_status "Starting services..."
 sudo supervisorctl reread
 sudo supervisorctl update
 sudo supervisorctl start all
-sudo systemctl enable nginx redis-server supervisor
-sudo systemctl start nginx redis-server supervisor
+sudo systemctl enable nginx supervisor
+sudo systemctl start nginx supervisor
 
 # Clear nginx cache
 print_status "Clearing nginx cache..."

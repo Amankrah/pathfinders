@@ -89,29 +89,13 @@ TEMPLATES = [
     },
 ]
 
-# Database settings with development fallback
-if IS_DEVELOPMENT:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
+# Database settings - Use SQLite for both development and production
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'pathfinders_db'),
-            'USER': os.getenv('DB_USER'),
-            'PASSWORD': os.getenv('DB_PASSWORD'),
-            'HOST': os.getenv('DB_HOST', 'pathfinders.c3oqsqcmizjz.eu-north-1.rds.amazonaws.com'),
-            'PORT': os.getenv('DB_PORT', '5432'),
-            'CONN_MAX_AGE': 60,  # persistent connections
-            'OPTIONS': {
-                'connect_timeout': 5,
-            },
-        }
-    }
+}
 
 AUTH_USER_MODEL = 'users.User'
 
@@ -210,28 +194,13 @@ REST_FRAMEWORK = {
     ],
 }
 
-# Cache configuration
-if DEBUG or IS_DEVELOPMENT:
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-            'LOCATION': 'unique-snowflake',
-        }
+# Cache configuration - Use local memory cache for both development and production
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
     }
-else:
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-            'LOCATION': os.getenv('REDIS_URL', 'redis://pathcache.xxxxx.ng.0001.eun1.cache.amazonaws.com:6379'),
-            'OPTIONS': {
-                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-                'SOCKET_CONNECT_TIMEOUT': 5,
-                'SOCKET_TIMEOUT': 5,
-                'CONNECTION_POOL_KWARGS': {'max_connections': 100},
-                'RETRY_ON_TIMEOUT': True,
-            }
-        }
-    }
+}
 
 # AWS S3 settings - Only use in production
 if IS_PRODUCTION:
