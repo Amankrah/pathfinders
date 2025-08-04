@@ -395,7 +395,7 @@ server {
         add_header Access-Control-Allow-Credentials "true" always;
         
         # Handle preflight requests
-        if (\$request_method = OPTIONS) {
+        if ($request_method = OPTIONS) {
             add_header Access-Control-Allow-Origin "https://pathfindersgifts.com" always;
             add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
             add_header Access-Control-Allow-Headers "accept, accept-encoding, authorization, content-type, dnt, origin, user-agent, x-csrftoken, x-requested-with" always;
@@ -455,8 +455,8 @@ server {
     location /admin {
         proxy_pass http://django_backend;
         # Add headers for Django Admin
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-Host \$server_name;
+        proxy_set_header X-Forwarded-Server \$server_name;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Host $host;
@@ -466,8 +466,8 @@ server {
     location /admin/ {
         proxy_pass http://django_backend;
         # Add headers for Django Admin
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-Host \$server_name;
+        proxy_set_header X-Forwarded-Server \$server_name;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Host $host;
@@ -478,8 +478,8 @@ server {
     location /api {
         proxy_pass http://django_backend;
         # Add headers for Django REST Framework
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-Host \$server_name;
+        proxy_set_header X-Forwarded-Server \$server_name;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Host $host;
@@ -489,8 +489,8 @@ server {
     location /api/ {
         proxy_pass http://django_backend;
         # Add headers for Django REST Framework
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-Host \$server_name;
+        proxy_set_header X-Forwarded-Server \$server_name;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Host $host;
@@ -581,7 +581,7 @@ server {
         add_header Access-Control-Allow-Credentials "true" always;
         
         # Handle preflight requests
-        if (\$request_method = OPTIONS) {
+        if ($request_method = OPTIONS) {
             add_header Access-Control-Allow-Origin "https://pathfindersgifts.com" always;
             add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
             add_header Access-Control-Allow-Headers "accept, accept-encoding, authorization, content-type, dnt, origin, user-agent, x-csrftoken, x-requested-with" always;
@@ -617,8 +617,8 @@ server {
     # API routes
     location /api/ {
         proxy_pass http://127.0.0.1:8000;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-Host \$server_name;
+        proxy_set_header X-Forwarded-Server \$server_name;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Host $host;
@@ -636,8 +636,8 @@ server {
     
     location /admin/ {
         proxy_pass http://127.0.0.1:8000;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-Host \$server_name;
+        proxy_set_header X-Forwarded-Server \$server_name;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Host $host;
@@ -648,8 +648,8 @@ server {
     location /fastapi/ {
         rewrite ^/fastapi/(.*) /$1 break;
         proxy_pass http://127.0.0.1:8001;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-Host \$server_name;
+        proxy_set_header X-Forwarded-Server \$server_name;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Host $host;
