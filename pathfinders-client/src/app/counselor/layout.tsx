@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useCounselorAuth } from '@/contexts/counselor-auth-context';
+import { Heart } from 'lucide-react';
 
 export default function CounselorLayout({
   children,
@@ -90,6 +91,17 @@ export default function CounselorLayout({
                 >
                   Assessments
                 </Link>
+                <Link 
+                  href="/counselor/donate" 
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                    isActive('/counselor/donate') 
+                      ? 'border-red-500 text-red-600' 
+                      : 'border-transparent text-red-500 hover:border-red-300 hover:text-red-700'
+                  }`}
+                >
+                  <Heart className="h-4 w-4 mr-1" />
+                  Donate
+                </Link>
               </nav>
             </div>
             
@@ -174,6 +186,18 @@ export default function CounselorLayout({
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Assessments
+            </Link>
+            <Link
+              href="/counselor/donate"
+              className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
+                isActive('/counselor/donate') 
+                  ? 'border-red-500 text-red-700 bg-red-50' 
+                  : 'border-transparent text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-800'
+              }`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              <Heart className="h-4 w-4 inline mr-2" />
+              Donate
             </Link>
           </div>
           <div className="pt-4 pb-3 border-t border-gray-200">

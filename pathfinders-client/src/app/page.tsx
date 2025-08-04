@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Gift, BookOpen, Target, Users, Sparkles, Lock } from 'lucide-react';
+import { ArrowRight, Gift, BookOpen, Target, Users, Sparkles, Lock, Heart } from 'lucide-react';
 import Header from '@/components/Header';
 
 export default function LandingPage() {
@@ -24,11 +24,11 @@ export default function LandingPage() {
             No matter your background, you are a Very Important Person on earth. Your gift is 
             needed by all of us - discover it, develop it, and excel in its operation.
           </p>
-          <div className="mt-10 flex justify-center gap-4">
+          <div className="mt-10 flex flex-col sm:flex-row justify-center gap-4">
             <Link 
               href="/register" 
               className="rounded-lg bg-indigo-600 px-8 py-4 text-lg font-semibold text-white shadow-lg 
-                hover:bg-indigo-700 transition-all duration-200 flex items-center gap-2 
+                hover:bg-indigo-700 transition-all duration-200 flex items-center justify-center gap-2 
                 hover:gap-3 group"
             >
               Start Your Journey
@@ -40,6 +40,14 @@ export default function LandingPage() {
                 border-2 border-indigo-600 hover:bg-indigo-50 transition-all duration-200"
             >
               Sign In
+            </Link>
+            <Link 
+              href="/donate" 
+              className="rounded-lg bg-red-600 px-8 py-4 text-lg font-semibold text-white shadow-lg 
+                hover:bg-red-700 transition-all duration-200 flex items-center justify-center gap-2"
+            >
+              <Heart className="w-5 h-5" />
+              Support Our Mission
             </Link>
           </div>
         </div>
@@ -222,6 +230,15 @@ export default function LandingPage() {
               <Lock className="w-5 h-5" />
               Counselor Access
             </Link>
+            <Link 
+              href="/donate" 
+              className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-8 py-4 
+                text-lg font-semibold text-white shadow-lg hover:bg-red-700 
+                transition-all duration-200"
+            >
+              <Heart className="w-5 h-5" />
+              Make a Donation
+            </Link>
           </div>
         </div>
       </div>
@@ -229,7 +246,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-8">
             <div>
               <h3 className="text-xl font-bold mb-4">Pathfinders</h3>
               <p className="text-gray-400">
@@ -295,6 +312,20 @@ export default function LandingPage() {
                   </Link>
                 </li>
               </ul>
+            </div>
+            <div>
+              <h4 className="text-lg font-medium mb-4">Support Us</h4>
+              <p className="text-gray-400 mb-4">
+                Help us continue our mission of helping people discover their God-given gifts.
+              </p>
+              <Link 
+                href="/donate" 
+                className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 
+                  text-sm font-semibold text-white hover:bg-red-700 transition-all duration-200"
+              >
+                <Heart className="w-4 h-4" />
+                Donate Now
+              </Link>
             </div>
           </div>
           <div className="mt-12 border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">

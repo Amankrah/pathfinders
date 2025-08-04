@@ -70,6 +70,9 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'pathfinders_project.urls'
 
+# URL Configuration
+APPEND_SLASH = True
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -273,3 +276,23 @@ LOGGING = {
         },
     },
 }
+
+# Payment settings - These will be overridden by local_settings.py in development
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
+STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET')
+ASSESSMENT_PRICE = os.getenv('ASSESSMENT_PRICE', '10.00')  # Default price in USD
+
+# MTN Mobile Money settings
+MTN_TARGET_ENVIRONMENT = os.getenv('MTN_TARGET_ENVIRONMENT', 'sandbox')
+MTN_COLLECTION_SUBSCRIPTION_KEY = os.getenv('MTN_COLLECTION_SUBSCRIPTION_KEY')
+MTN_COLLECTION_PRIMARY_KEY = os.getenv('MTN_COLLECTION_PRIMARY_KEY')
+MTN_COLLECTION_SECONDARY_KEY = os.getenv('MTN_COLLECTION_SECONDARY_KEY')
+MTN_CALLBACK_URL = os.getenv('MTN_CALLBACK_URL', 'https://pathfindersgifts.com/api/core/mtn-webhook/')
+MTN_CURRENCY = os.getenv('MTN_CURRENCY', 'GHS')
+MTN_MERCHANT_NUMBER = os.getenv('MTN_MERCHANT_NUMBER', '233536888387')
+
+# Import local settings for development
+try:
+    from .local_settings import *
+except ImportError:
+    pass

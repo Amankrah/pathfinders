@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 // Public paths that don't require authentication
-const publicPaths = ['/', '/login', '/register', '/forgot-password', '/debug'];
+const publicPaths = ['/', '/login', '/register', '/forgot-password', '/debug', '/donate'];
 
 // Counselor paths that have their own authentication flow
 const counselorPaths = [

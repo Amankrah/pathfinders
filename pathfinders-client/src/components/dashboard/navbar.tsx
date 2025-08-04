@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useMobileMenu } from '@/contexts/mobile-menu-context';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { LogOut, Bell, Menu } from 'lucide-react';
+import { LogOut, Bell, Menu, Heart } from 'lucide-react';
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -42,6 +42,17 @@ export function Navbar() {
                   transition-colors duration-200"
               >
                 Books
+              </Link>
+            )}
+
+            {!isMobile && (
+              <Link
+                href="/dashboard/donate"
+                className="hidden sm:flex items-center gap-2 text-sm font-medium text-red-600 hover:text-red-700 
+                  transition-colors duration-200"
+              >
+                <Heart className="h-4 w-4" />
+                Donate
               </Link>
             )}
 

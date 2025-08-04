@@ -38,6 +38,20 @@ export const API_CONFIG = {
   }
 };
 
+// Payment configuration
+export const PAYMENT_CONFIG = {
+  // Stripe configuration
+  stripe: {
+    publishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_your_stripe_publishable_key_here',
+  },
+  
+  // MTN Mobile Money configuration
+  mtn: {
+    merchantCode: process.env.NEXT_PUBLIC_MTN_MERCHANT_CODE || 'YOUR_MERCHANT_CODE',
+    currency: 'UGX',
+  }
+};
+
 // Authentication settings
 export const AUTH_CONFIG = {
   // Cookie names

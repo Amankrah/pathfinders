@@ -36,4 +36,10 @@ class GiftResult(BaseModel):
 class ProgressData(BaseModel):
     user_id: int
     assessment_id: int | None = None
-    current_answers: List[Answer] 
+    current_answers: List[Answer]
+
+# Payment validation removed - assessments are now free
+# class PaymentValidationResponse(BaseModel):
+#     is_valid: bool
+#     message: str | None = None
+#     payment_id: str | None = None

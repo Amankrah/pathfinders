@@ -16,6 +16,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from books.services import BookAccessService
 from django.db.models import Q
+from core.models import Payment
 
 class QuestionViewSet(viewsets.ModelViewSet):
     serializer_class = QuestionSerializer
@@ -50,18 +51,17 @@ class AssessmentViewSet(viewsets.ModelViewSet):
         
         # Regular users see only their own assessments
         return queryset.filter(user=self.request.user)
-
+        
     def perform_create(self, serializer):
         # Check if user has reached the assessment limit before creating a new one
         if not hasattr(self.request.user, 'counselor_profile') and Assessment.has_reached_limit(self.request.user):
             raise ValueError("You have reached the maximum limit of 3 assessments")
-            
+
         if hasattr(self.request.user, 'counselor_profile'):
-            serializer.save(
-                counselor=self.request.user.counselor_profile,
-                is_counselor_session=True
-            )
+            # For counselors, create assessment for target user
+            serializer.save(counselor=self.request.user.counselor_profile)
         else:
+            # For regular users, create assessment for themselves
             serializer.save(user=self.request.user)
     
     def create(self, request, *args, **kwargs):

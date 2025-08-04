@@ -53,6 +53,11 @@ export interface AssessmentResultsData {
   secondary_gifts: string[];
   answers?: Answer[];
   descriptions: GiftDescriptions;
+  recommended_roles?: {
+    primary_roles: string[];
+    secondary_roles: string[];
+    ministry_areas: string[];
+  };
 }
 
 export interface AssessmentSummary {

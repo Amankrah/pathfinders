@@ -56,6 +56,7 @@ urlpatterns = [
         ])),
         path('counselors/', include('counselors.urls')),
         path('', include('assessments.urls')),
+        path('core/', include('core.urls')),
         path('csrf/', CsrfTokenView.as_view(), name='csrf-token'),
     ])),
     # Serve frontend for all other routes

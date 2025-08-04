@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from .models import (
+from fastapi_app.models import (
     AssessmentRequest, 
     GiftResult, 
     ProgressData, 
@@ -40,6 +40,29 @@ DJANGO_API_URL = os.getenv('DJANGO_API_URL', 'http://localhost:8000')
 
 calculator = GiftCalculator()
 
+# Payment validation removed - assessments are now free
+# async def validate_payment(user_id: int, payment_id: str | None = None) -> PaymentValidationResponse:
+#     """Validate payment status with Django backend"""
+#     try:
+#         async with httpx.AsyncClient() as client:
+#             response = await client.post(
+#                 PAYMENT_VALIDATION_URL,
+#                 json={"user_id": user_id, "payment_id": payment_id}
+#             )
+#             if response.status_code == 200:
+#                 return PaymentValidationResponse(**response.json())
+#             else:
+#                 raise HTTPException(
+#                     status_code=400,
+#                     detail="Payment validation failed"
+#                 )
+#     except Exception as e:
+#         logger.error(f"Payment validation error: {str(e)}")
+#         raise HTTPException(
+#             status_code=500,
+#             detail="Error validating payment"
+#         )
+
 @app.post("/calculate-gifts/")
 async def calculate_gifts(assessment: AssessmentRequest):
     """
@@ -47,6 +70,9 @@ async def calculate_gifts(assessment: AssessmentRequest):
     """
     try:
         logger.info(f"Received assessment request with {len(assessment.answers)} answers")
+
+        # Assessments are now free - no payment validation required
+        logger.info("Processing assessment (no payment validation required)")
         
         # Convert answers to the format expected by calculator
         formatted_answers = [
@@ -99,21 +125,23 @@ async def calculate_gifts(assessment: AssessmentRequest):
                 ),
                 secondary=[
                     GiftDescription(
-                        gift=g['gift'],
-                        description=g['description'],
-                        details=g['details']
+                        gift=desc['gift'],
+                        description=desc['description'],
+                        details=desc['details']
                     )
-                    for g in descriptions['secondary']
+                    for desc in descriptions['secondary']
                 ]
             ),
-            recommended_roles=roles  # Include empty roles structure for consistency
+            recommended_roles=roles
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error calculating gifts: {str(e)}")
+        logger.error(f"Error processing assessment: {str(e)}")
         raise HTTPException(
-            status_code=400,
-            detail=f"Calculation failed: {str(e)}"
+            status_code=500,
+            detail=f"Error processing assessment: {str(e)}"
         )
 
 @app.post("/progress/save/")
@@ -150,4 +178,4 @@ async def get_progress(user_id: int):
 
 @app.get("/health/")
 async def health_check():
-    return {"status": "healthy", "version": "1.0"} 
+    return {"status": "healthy", "version": "1.0"}

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Book, BookOpen, Home, UserCircle, ClipboardCheck, Target, X } from 'lucide-react';
+import { Book, BookOpen, Home, UserCircle, ClipboardCheck, Target, X, Heart, History } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useMobileMenu } from '@/contexts/mobile-menu-context';
 import { useEffect } from 'react';
@@ -49,6 +49,8 @@ export function Sidebar() {
     },
     { name: 'Assessments', href: '/dashboard/assessments', icon: ClipboardCheck },
     { name: 'Profile', href: '/dashboard/profile', icon: UserCircle },
+    { name: 'Donate', href: '/dashboard/donate', icon: Heart },
+    { name: 'My Donations', href: '/dashboard/donations', icon: History },
   ];
 
   if (isMobile && !sidebarOpen) {
@@ -96,7 +98,9 @@ export function Sidebar() {
                   'group flex items-center px-3 py-2.5 text-sm font-medium rounded-xl',
                   'transition-all duration-200 ease-in-out',
                   pathname === item.href || pathname.startsWith(`${item.href}/`)
-                    ? 'bg-gradient-to-r from-indigo-50 to-blue-50 text-indigo-700'
+                    ? item.name === 'Donate' 
+                      ? 'bg-gradient-to-r from-red-50 to-pink-50 text-red-700'
+                      : 'bg-gradient-to-r from-indigo-50 to-blue-50 text-indigo-700'
                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 )}
               >
