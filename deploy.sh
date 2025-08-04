@@ -206,8 +206,41 @@ python -c "import django; django.setup()" || {
 
 # Set Django settings and run Django commands
 export DJANGO_SETTINGS_MODULE="pathfinders_project.settings"
+export ENVIRONMENT="production"
+export DEBUG="False"
+
+# Update Django settings for production
 python manage.py collectstatic --noinput --clear
 python manage.py migrate
+
+# Create a production settings override
+cat > $DJANGO_DIR/production_settings.py << 'EOF'
+# Production settings override
+import os
+from pathlib import Path
+
+# Ensure production settings
+os.environ.setdefault('ENVIRONMENT', 'production')
+os.environ.setdefault('DEBUG', 'False')
+
+# Update CORS settings for production
+CORS_ALLOWED_ORIGINS = [
+    "https://pathfindersgifts.com",
+    "https://www.pathfindersgifts.com",
+]
+
+# Ensure CSRF settings are correct
+CSRF_TRUSTED_ORIGINS = [
+    "https://pathfindersgifts.com",
+    "https://www.pathfindersgifts.com",
+]
+
+# Disable SSL redirect in development
+SECURE_SSL_REDIRECT = False
+SECURE_HSTS_SECONDS = 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+SECURE_HSTS_PRELOAD = False
+EOF
 
 # Set proper permissions for SQLite database
 if [ -f "$DJANGO_DIR/db.sqlite3" ]; then
@@ -398,19 +431,47 @@ server {
     # Django Admin - handle both with and without trailing slash
     location /admin {
         proxy_pass http://django_backend;
+        # Add headers for Django Admin
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
     
     location /admin/ {
         proxy_pass http://django_backend;
+        # Add headers for Django Admin
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
     
     # Django REST Framework API - handle both with and without trailing slash
     location /api {
         proxy_pass http://django_backend;
+        # Add headers for Django REST Framework
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
     
     location /api/ {
         proxy_pass http://django_backend;
+        # Add headers for Django REST Framework
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
     
     # FastAPI routes - strip /fastapi prefix and pass to FastAPI backend
@@ -418,6 +479,17 @@ server {
         # Remove /fastapi prefix when passing to FastAPI
         rewrite ^/fastapi/(.*) /\$1 break;
         proxy_pass http://fastapi_backend;
+        # Add headers for FastAPI
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        # Increase timeouts for FastAPI
+        proxy_read_timeout 300;
+        proxy_connect_timeout 300;
+        proxy_send_timeout 300;
     }
     
     location /fastapi {
@@ -496,16 +568,37 @@ server {
     # API routes
     location /api/ {
         proxy_pass http://127.0.0.1:8000;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
     
     location /admin/ {
         proxy_pass http://127.0.0.1:8000;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
     
     # FastAPI routes - strip /fastapi prefix
     location /fastapi/ {
         rewrite ^/fastapi/(.*) /$1 break;
         proxy_pass http://127.0.0.1:8001;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_read_timeout 300;
+        proxy_connect_timeout 300;
+        proxy_send_timeout 300;
     }
     
     location /fastapi {
@@ -560,20 +653,20 @@ autostart=true
 autorestart=true
 redirect_stderr=true
 stdout_logfile=/var/log/pathfinders-django.log
-environment=ENVIRONMENT="production",DJANGO_SETTINGS_MODULE="pathfinders_project.settings"
+environment=ENVIRONMENT="production",DJANGO_SETTINGS_MODULE="pathfinders_project.settings",DEBUG="False"
 EOF
 
 # FastAPI configuration
 sudo tee /etc/supervisor/conf.d/pathfinders-fastapi.conf > /dev/null << EOF
 [program:pathfinders-fastapi]
-command=$VENV_DIR/bin/uvicorn fastapi_app.main:app --host 127.0.0.1 --port 8001 --workers 2
-directory=$FASTAPI_DIR
+command=$VENV_DIR/bin/uvicorn fastapi_app.main:app --host 127.0.0.1 --port 8001 --workers 1
+directory=$BACKEND_DIR
 user=$USER
 autostart=true
 autorestart=true
 redirect_stderr=true
 stdout_logfile=/var/log/pathfinders-fastapi.log
-environment=ENVIRONMENT="production"
+environment=ENVIRONMENT="production",DJANGO_API_URL="https://pathfindersgifts.com"
 EOF
 
 # Next.js frontend configuration
@@ -681,4 +774,61 @@ print_status "- sudo systemctl reload nginx"
 print_status ""
 print_status "Database backup:"
 print_status "- Manual backup: /usr/local/bin/pathfinders-backup.sh"
-print_status "- Backups location: /var/backups/pathfinders/" 
+print_status "- Backups location: /var/backups/pathfinders/"
+
+# 17. Test and verify deployment
+print_status "Testing deployment..."
+
+# Wait for services to start
+sleep 10
+
+# Test services directly
+print_status "Testing services directly..."
+
+# Test Django
+if curl -s http://127.0.0.1:8000/health/ > /dev/null; then
+    print_status "✅ Django is responding on port 8000"
+else
+    print_warning "⚠️  Django not responding on port 8000"
+fi
+
+# Test FastAPI
+if curl -s http://127.0.0.1:8001/health/ > /dev/null; then
+    print_status "✅ FastAPI is responding on port 8001"
+else
+    print_warning "⚠️  FastAPI not responding on port 8001"
+fi
+
+# Test Next.js
+if curl -s http://127.0.0.1:3000/ > /dev/null; then
+    print_status "✅ Next.js is responding on port 3000"
+else
+    print_warning "⚠️  Next.js not responding on port 3000"
+fi
+
+# Test nginx routing
+print_status "Testing nginx routing..."
+
+# Test Django API through nginx
+if curl -s -I https://pathfindersgifts.com/api/ | grep -q "200\|302\|403"; then
+    print_status "✅ Django API accessible through nginx"
+else
+    print_warning "⚠️  Django API not accessible through nginx"
+fi
+
+# Test FastAPI through nginx
+if curl -s -I https://pathfindersgifts.com/fastapi/health | grep -q "200\|502"; then
+    print_status "✅ FastAPI health check accessible through nginx"
+else
+    print_warning "⚠️  FastAPI not accessible through nginx"
+fi
+
+print_status ""
+print_status "🔧 Troubleshooting commands:"
+print_status "- Check service status: sudo supervisorctl status"
+print_status "- View Django logs: sudo tail -f /var/log/pathfinders-django.log"
+print_status "- View FastAPI logs: sudo tail -f /var/log/pathfinders-fastapi.log"
+print_status "- View nginx logs: sudo tail -f /var/log/nginx/error.log"
+print_status "- Test nginx config: sudo nginx -t"
+print_status "- Restart services: sudo supervisorctl restart all"
+print_status "- Reload nginx: sudo systemctl reload nginx" 
