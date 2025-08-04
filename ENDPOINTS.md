@@ -230,6 +230,7 @@ curl -X POST https://pathfindersgifts.com/api/auth/login/ \
    - Verify FastAPI service is running on port 8001
    - Check nginx configuration for `/fastapi/` routing
    - Ensure endpoint paths match exactly
+   - Run `sudo supervisorctl status` to check service status
 
 3. **CORS errors**
    - Verify CORS settings in Django settings
@@ -240,6 +241,29 @@ curl -X POST https://pathfindersgifts.com/api/auth/login/ \
    - Check session configuration
    - Verify cookie settings
    - Ensure proper CSRF token handling
+
+5. **Nginx configuration errors**
+   - Check nginx syntax: `sudo nginx -t`
+   - If syntax errors, fix the if condition syntax: use `if (\$request_method = OPTIONS)` not `if ($request_method = 'OPTIONS')`
+   - Reload nginx: `sudo systemctl reload nginx`
+   - Check nginx error logs: `sudo tail -f /var/log/nginx/error.log`
+
+### Quick Fix Commands
+
+After making changes to deploy.sh, run these commands on the server:
+
+```bash
+# Fix nginx configuration and reload
+sudo nginx -t
+sudo systemctl reload nginx
+
+# Restart all services if needed
+sudo supervisorctl restart all
+
+# Test routing
+curl -I https://pathfindersgifts.com/api/health/
+curl -I https://pathfindersgifts.com/fastapi/health/
+```
 
 ### Log Locations
 - Django logs: `/var/log/pathfinders-django.log`

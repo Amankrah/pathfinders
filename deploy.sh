@@ -395,7 +395,7 @@ server {
         add_header Access-Control-Allow-Credentials "true" always;
         
         # Handle preflight requests
-        if ($request_method = 'OPTIONS') {
+        if (\$request_method = OPTIONS) {
             add_header Access-Control-Allow-Origin "https://pathfindersgifts.com" always;
             add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
             add_header Access-Control-Allow-Headers "accept, accept-encoding, authorization, content-type, dnt, origin, user-agent, x-csrftoken, x-requested-with" always;
@@ -581,7 +581,7 @@ server {
         add_header Access-Control-Allow-Credentials "true" always;
         
         # Handle preflight requests
-        if ($request_method = 'OPTIONS') {
+        if (\$request_method = OPTIONS) {
             add_header Access-Control-Allow-Origin "https://pathfindersgifts.com" always;
             add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
             add_header Access-Control-Allow-Headers "accept, accept-encoding, authorization, content-type, dnt, origin, user-agent, x-csrftoken, x-requested-with" always;
