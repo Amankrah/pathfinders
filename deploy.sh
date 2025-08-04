@@ -340,10 +340,11 @@ server {
     server_name pathfindersgifts.com www.pathfindersgifts.com;
 
     # SSL configuration - will be managed by certbot
-    ssl_certificate /etc/letsencrypt/live/pathfindersgifts.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/pathfindersgifts.com/privkey.pem;
-    include /etc/letsencrypt/options-ssl-nginx.conf;
-    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+    # These will be automatically configured by certbot
+    # ssl_certificate /etc/letsencrypt/live/pathfindersgifts.com/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/pathfindersgifts.com/privkey.pem;
+    # include /etc/letsencrypt/options-ssl-nginx.conf;
+    # ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
 
     # Security headers
     add_header X-Frame-Options DENY always;
@@ -467,8 +468,54 @@ sudo rm -f /etc/nginx/sites-enabled/default
 
 # Test nginx configuration
 if ! sudo nginx -t; then
-    print_error "Nginx configuration test failed"
-    exit 1
+    print_warning "Nginx configuration test failed - trying HTTP-only configuration..."
+    
+    # Create a simplified HTTP-only configuration
+    sudo tee /etc/nginx/sites-available/pathfindersgifts.com > /dev/null << 'EOF'
+# HTTP-only configuration for initial setup
+server {
+    listen 80;
+    server_name pathfindersgifts.com www.pathfindersgifts.com;
+
+    # Common proxy settings
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_redirect off;
+    proxy_read_timeout 300;
+    proxy_connect_timeout 300;
+    proxy_send_timeout 300;
+    
+    # Frontend - all routes go to Next.js
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_cache_bypass $http_upgrade;
+    }
+    
+    # API routes
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000;
+    }
+    
+    location /admin/ {
+        proxy_pass http://127.0.0.1:8000;
+    }
+    
+    location /fastapi/ {
+        proxy_pass http://127.0.0.1:8001/;
+    }
+}
+EOF
+    
+    # Test the simplified configuration
+    if ! sudo nginx -t; then
+        print_error "Nginx configuration test failed even with simplified config"
+        exit 1
+    fi
 fi
 
 print_status "Nginx configuration completed ✓"
@@ -547,7 +594,11 @@ print_status "Testing HTTP configuration before SSL..."
 curl -I http://pathfindersgifts.com/ || print_warning "HTTP test failed - continuing with SSL setup"
 
 # Get SSL certificate - let certbot modify nginx configuration automatically
-sudo certbot --nginx -d pathfindersgifts.com -d www.pathfindersgifts.com --non-interactive --agree-tos --email your-email@example.com
+print_status "Obtaining SSL certificate from Let's Encrypt..."
+sudo certbot --nginx -d pathfindersgifts.com -d www.pathfindersgifts.com --non-interactive --agree-tos --email your-email@example.com || {
+    print_warning "SSL certificate installation failed - continuing with HTTP-only configuration"
+    print_warning "You can manually run: sudo certbot --nginx -d pathfindersgifts.com -d www.pathfindersgifts.com"
+}
 
 # Verify SSL certificate was installed
 if [ -f "/etc/letsencrypt/live/pathfindersgifts.com/fullchain.pem" ]; then
@@ -557,8 +608,9 @@ if [ -f "/etc/letsencrypt/live/pathfindersgifts.com/fullchain.pem" ]; then
     sudo nginx -t && sudo systemctl reload nginx
     print_status "HTTPS configuration activated ✓"
 else
-    print_error "SSL certificate installation failed"
-    print_warning "Continuing with HTTP-only configuration"
+    print_warning "SSL certificate not found - continuing with HTTP-only configuration"
+    print_warning "You can manually obtain SSL certificate later with:"
+    print_warning "sudo certbot --nginx -d pathfindersgifts.com -d www.pathfindersgifts.com"
 fi
 
 # 13. Start services
