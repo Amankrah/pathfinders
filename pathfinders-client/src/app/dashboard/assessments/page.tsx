@@ -36,9 +36,9 @@ export default function AssessmentsPage() {
       setProcessingDonation(true);
 
       if (method === 'stripe') {
-        const { checkoutUrl } = await donationApi.createStripeDonation(amount, 'usd', donationMessage);
+        const { checkout_url } = await donationApi.createStripeDonation(amount, 'usd', donationMessage);
         toast.info('Redirecting to donation page...');
-        window.location.href = checkoutUrl;
+        window.location.href = checkout_url;
       } else if (method === 'mtn') {
         // For MTN, we'll need a phone number - this is a simplified version
         const phoneNumber = prompt('Please enter your MTN phone number:');
