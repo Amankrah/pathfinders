@@ -13,10 +13,10 @@
 cd /path/to/pathfinders
 
 # Set proper permissions for the SSH key
-chmod 400 pathfinders.pem
+chmod 400 test.pem
 
 # SSH into your AWS instance
-ssh -i pathfinders.pem ubuntu@13.49.5.171
+ssh -i test.pem ubuntu@3.98.30.68
 ```
 
 ## Step 2: Clone Repository and Setup

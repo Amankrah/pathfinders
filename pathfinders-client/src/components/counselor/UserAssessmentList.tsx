@@ -128,7 +128,7 @@ const UserAssessmentList: React.FC<UserAssessmentListProps> = ({ user, refreshDa
               </div>
               
               <div className="text-sm text-gray-700 mt-1">
-                Created: {assessment.created_at ? new Date(assessment.created_at).toLocaleDateString() : 'N/A'}
+                Created: {assessment.created_at && assessment.created_at !== '' ? new Date(assessment.created_at).toLocaleDateString() : 'N/A'}
               </div>
               
               {assessment.counselor_notes && (
