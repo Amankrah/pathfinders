@@ -363,7 +363,7 @@ server {
     proxy_connect_timeout 300;
     proxy_send_timeout 300;
     
-    # Static files with cache
+    # Next.js static files with cache
     location /_next/static/ {
         alias /var/www/html/pathfinders/.next/static/;
         expires 1y;
@@ -371,15 +371,15 @@ server {
         access_log off;
     }
     
-    # Django static files (REST Framework expects /static/ path)
-    location ~ ^/static/(rest_framework|admin)/ {
+    # Django static files (admin and REST framework)
+    location ~ ^/static/(admin|rest_framework)/ {
         alias $DJANGO_DIR/staticfiles/;
         expires 1y;
         add_header Cache-Control "public, immutable";
         access_log off;
     }
     
-    # Frontend static files (everything else under /static/)
+    # Frontend public static files
     location /static/ {
         alias /var/www/html/pathfinders/public/;
         expires 1y;
@@ -387,14 +387,7 @@ server {
         access_log off;
     }
     
-    # Django static and media files (alternative path)
-    location /django-static/ {
-        alias $DJANGO_DIR/staticfiles/;
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-        access_log off;
-    }
-    
+    # Django media files
     location /media/ {
         alias $DJANGO_DIR/media/;
         expires 1y;
@@ -420,16 +413,19 @@ server {
         proxy_pass http://django_backend;
     }
     
-    # FastAPI routes - handle both with and without trailing slash
-    location /fastapi {
+    # FastAPI routes - strip /fastapi prefix and pass to FastAPI backend
+    location /fastapi/ {
+        # Remove /fastapi prefix when passing to FastAPI
+        rewrite ^/fastapi/(.*) /\$1 break;
         proxy_pass http://fastapi_backend;
     }
     
-    location /fastapi/ {
-        proxy_pass http://fastapi_backend/;
+    location /fastapi {
+        # Handle /fastapi without trailing slash
+        rewrite ^/fastapi$ /fastapi/ permanent;
     }
     
-    # Health checks - handle both with and without trailing slash
+    # Health checks - Django health check
     location /health {
         proxy_pass http://django_backend;
     }
@@ -438,8 +434,9 @@ server {
         proxy_pass http://django_backend;
     }
     
+    # FastAPI health check
     location /fastapi/health {
-        proxy_pass http://fastapi_backend;
+        proxy_pass http://fastapi_backend/health;
     }
     
     # Frontend - all other routes go to Next.js (including /auth/, /dashboard/, /counselor/)
@@ -505,8 +502,14 @@ server {
         proxy_pass http://127.0.0.1:8000;
     }
     
+    # FastAPI routes - strip /fastapi prefix
     location /fastapi/ {
-        proxy_pass http://127.0.0.1:8001/;
+        rewrite ^/fastapi/(.*) /$1 break;
+        proxy_pass http://127.0.0.1:8001;
+    }
+    
+    location /fastapi {
+        rewrite ^/fastapi$ /fastapi/ permanent;
     }
 }
 EOF
@@ -595,7 +598,7 @@ curl -I http://pathfindersgifts.com/ || print_warning "HTTP test failed - contin
 
 # Get SSL certificate - let certbot modify nginx configuration automatically
 print_status "Obtaining SSL certificate from Let's Encrypt..."
-sudo certbot --nginx -d pathfindersgifts.com -d www.pathfindersgifts.com --non-interactive --agree-tos --email your-email@example.com || {
+sudo certbot --nginx -d pathfindersgifts.com -d www.pathfindersgifts.com --non-interactive --agree-tos --email vineralse@gmail.com || {
     print_warning "SSL certificate installation failed - continuing with HTTP-only configuration"
     print_warning "You can manually run: sudo certbot --nginx -d pathfindersgifts.com -d www.pathfindersgifts.com"
 }

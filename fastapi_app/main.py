@@ -38,6 +38,10 @@ app.add_middleware(
 # Update the httpx client calls to use environment variables
 DJANGO_API_URL = os.getenv('DJANGO_API_URL', 'http://localhost:8000')
 
+# For production, use the full domain
+if os.getenv('ENVIRONMENT') == 'production':
+    DJANGO_API_URL = 'https://pathfindersgifts.com'
+
 calculator = GiftCalculator()
 
 # Payment validation removed - assessments are now free

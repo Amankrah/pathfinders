@@ -264,3 +264,5 @@ export MTN_COLLECTION_PRIMARY_KEY="2026432ffc664e909d6ace2e4d4b24b0"
 export MTN_COLLECTION_SECONDARY_KEY="e3e05b43c2e04540a969390346beb2a0"
 export STRIPE_SECRET_KEY="sk_test_your_actual_key"
 ./deploy.sh
+
+sudo certbot --nginx -d pathfindersgifts.com -d www.pathfindersgifts.com
