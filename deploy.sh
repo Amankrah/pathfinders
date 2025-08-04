@@ -386,12 +386,34 @@ server {
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    
+    # CORS headers for API endpoints
+    location ~ ^/(api|fastapi)/ {
+        add_header Access-Control-Allow-Origin "https://pathfindersgifts.com" always;
+        add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "accept, accept-encoding, authorization, content-type, dnt, origin, user-agent, x-csrftoken, x-requested-with" always;
+        add_header Access-Control-Allow-Credentials "true" always;
+        
+        # Handle preflight requests
+        if ($request_method = 'OPTIONS') {
+            add_header Access-Control-Allow-Origin "https://pathfindersgifts.com" always;
+            add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
+            add_header Access-Control-Allow-Headers "accept, accept-encoding, authorization, content-type, dnt, origin, user-agent, x-csrftoken, x-requested-with" always;
+            add_header Access-Control-Allow-Credentials "true" always;
+            add_header Access-Control-Max-Age 1728000;
+            add_header Content-Type "text/plain; charset=utf-8";
+            add_header Content-Length 0;
+            return 204;
+        }
+    }
 
     # Common proxy settings
     proxy_set_header Host \$host;
     proxy_set_header X-Real-IP \$remote_addr;
     proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_set_header X-Forwarded-Host \$server_name;
+    proxy_set_header X-Forwarded-Server \$server_name;
     proxy_redirect off;
     proxy_read_timeout 300;
     proxy_connect_timeout 300;
@@ -481,12 +503,12 @@ server {
         rewrite ^/fastapi/(.*) /\$1 break;
         proxy_pass http://fastapi_backend;
         # Add headers for FastAPI
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Host \$server_name;
+        proxy_set_header X-Forwarded-Server \$server_name;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
         # Increase timeouts for FastAPI
         proxy_read_timeout 300;
         proxy_connect_timeout 300;
@@ -510,6 +532,10 @@ server {
     # FastAPI health check
     location /fastapi/health {
         proxy_pass http://fastapi_backend/health;
+    }
+    
+    location /fastapi/health/ {
+        proxy_pass http://fastapi_backend/health/;
     }
     
     # Frontend - all other routes go to Next.js (including /auth/, /dashboard/, /counselor/)
@@ -547,11 +573,33 @@ server {
     listen 80;
     server_name pathfindersgifts.com www.pathfindersgifts.com;
 
+    # CORS headers for API endpoints
+    location ~ ^/(api|fastapi)/ {
+        add_header Access-Control-Allow-Origin "https://pathfindersgifts.com" always;
+        add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "accept, accept-encoding, authorization, content-type, dnt, origin, user-agent, x-csrftoken, x-requested-with" always;
+        add_header Access-Control-Allow-Credentials "true" always;
+        
+        # Handle preflight requests
+        if ($request_method = 'OPTIONS') {
+            add_header Access-Control-Allow-Origin "https://pathfindersgifts.com" always;
+            add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
+            add_header Access-Control-Allow-Headers "accept, accept-encoding, authorization, content-type, dnt, origin, user-agent, x-csrftoken, x-requested-with" always;
+            add_header Access-Control-Allow-Credentials "true" always;
+            add_header Access-Control-Max-Age 1728000;
+            add_header Content-Type "text/plain; charset=utf-8";
+            add_header Content-Length 0;
+            return 204;
+        }
+    }
+
     # Common proxy settings
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $server_name;
+    proxy_set_header X-Forwarded-Server $server_name;
     proxy_redirect off;
     proxy_read_timeout 300;
     proxy_connect_timeout 300;
@@ -575,6 +623,15 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+    }
+    
+    # Health checks
+    location /health {
+        proxy_pass http://127.0.0.1:8000;
+    }
+    
+    location /health/ {
+        proxy_pass http://127.0.0.1:8000;
     }
     
     location /admin/ {

@@ -67,6 +67,16 @@ calculator = GiftCalculator()
 #             detail="Error validating payment"
 #         )
 
+@app.get("/")
+async def root():
+    """Root endpoint for FastAPI"""
+    return {"message": "Pathfinders FastAPI Service", "status": "running"}
+
+@app.get("/health/")
+async def health_check():
+    """Health check endpoint for FastAPI"""
+    return {"status": "healthy", "service": "fastapi", "version": "1.0"}
+
 @app.post("/calculate-gifts/")
 async def calculate_gifts(assessment: AssessmentRequest):
     """
@@ -179,7 +189,3 @@ async def get_progress(user_id: int):
         except Exception as e:
             logger.error(f"Failed to get progress: {str(e)}")
             raise HTTPException(status_code=500, detail=f"Failed to get progress: {str(e)}")
-
-@app.get("/health/")
-async def health_check():
-    return {"status": "healthy", "version": "1.0"}

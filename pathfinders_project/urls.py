@@ -35,14 +35,21 @@ router.register(r'counselors', CounselorViewSet, basename='counselor')
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Public health check endpoint (no authentication required)
     path('health/', health_check, name='health-check'),
+    path('api/health/', health_check, name='api-health-check'),
     path('api/', include([
-        path('', include(router.urls)),
+        # Public endpoints (no authentication required)
         path('auth/', include([
             path('login/', LoginView.as_view(), name='user-login'),
             path('logout/', LogoutView.as_view(), name='user-logout'),
-            path('me/', UserViewSet.as_view({'get': 'me'}), name='user-me'),
             path('register/', UserViewSet.as_view({'post': 'register'}), name='user-register'),
+            path('csrf/', CsrfTokenView.as_view(), name='csrf-token'),
+        ])),
+        # Protected endpoints (require authentication)
+        path('', include(router.urls)),
+        path('auth/', include([
+            path('me/', UserViewSet.as_view({'get': 'me'}), name='user-me'),
             path('profile/', UserViewSet.as_view({
                 'get': 'profile',
                 'patch': 'profile',
@@ -57,7 +64,6 @@ urlpatterns = [
         path('counselors/', include('counselors.urls')),
         path('', include('assessments.urls')),
         path('core/', include('core.urls')),
-        path('csrf/', CsrfTokenView.as_view(), name='csrf-token'),
     ])),
     # Serve frontend for all other routes
     re_path(r'^(?P<path>.*)$', serve_frontend, name='frontend'),
