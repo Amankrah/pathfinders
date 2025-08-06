@@ -142,7 +142,7 @@ if [ ! -f "$BACKEND_DIR/.env" ]; then
 # Django Settings
 DEBUG=False
 SECRET_KEY=${DJANGO_SECRET_KEY}
-ALLOWED_HOSTS=pathfindersgifts.com,www.pathfindersgifts.com
+ALLOWED_HOSTS=pathfindersgifts.com,www.pathfindersgifts.com,127.0.0.1,localhost,3.98.30.68
 
 # Database - SQLite
 DATABASE_URL=sqlite:///db.sqlite3
@@ -224,23 +224,35 @@ from pathlib import Path
 os.environ.setdefault('ENVIRONMENT', 'production')
 os.environ.setdefault('DEBUG', 'False')
 
-# Update CORS settings for production
+# Update CORS settings for production - support both HTTP and HTTPS during setup
 CORS_ALLOWED_ORIGINS = [
+    "http://pathfindersgifts.com",
+    "http://www.pathfindersgifts.com",
     "https://pathfindersgifts.com",
     "https://www.pathfindersgifts.com",
+    "http://3.98.30.68",
+    "https://3.98.30.68",
 ]
 
-# Ensure CSRF settings are correct
+# Ensure CSRF settings are correct - support both HTTP and HTTPS during setup
 CSRF_TRUSTED_ORIGINS = [
+    "http://pathfindersgifts.com",
+    "http://www.pathfindersgifts.com",
     "https://pathfindersgifts.com",
     "https://www.pathfindersgifts.com",
+    "http://3.98.30.68",
+    "https://3.98.30.68",
 ]
 
-# Disable SSL redirect in development
+# Disable SSL redirect during initial setup
 SECURE_SSL_REDIRECT = False
 SECURE_HSTS_SECONDS = 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 SECURE_HSTS_PRELOAD = False
+
+# Cookie settings for HTTP during initial setup
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
 EOF
 
 # Set proper permissions for SQLite database
@@ -360,18 +372,18 @@ sudo tee /etc/nginx/sites-available/pathfindersgifts.com > /dev/null << 'EOF'
 # HTTP-only configuration for initial setup
 server {
     listen 80;
-    server_name pathfindersgifts.com www.pathfindersgifts.com;
+    server_name pathfindersgifts.com www.pathfindersgifts.com 3.98.30.68;
 
     # CORS headers for API endpoints
     location ~ ^/(api|fastapi)/ {
-        add_header Access-Control-Allow-Origin "https://pathfindersgifts.com" always;
+        add_header Access-Control-Allow-Origin "http://pathfindersgifts.com" always;
         add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
         add_header Access-Control-Allow-Headers "accept, accept-encoding, authorization, content-type, dnt, origin, user-agent, x-csrftoken, x-requested-with" always;
         add_header Access-Control-Allow-Credentials "true" always;
         
         # Handle preflight requests
         if ($request_method = OPTIONS) {
-            add_header Access-Control-Allow-Origin "https://pathfindersgifts.com" always;
+            add_header Access-Control-Allow-Origin "http://pathfindersgifts.com" always;
             add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
             add_header Access-Control-Allow-Headers "accept, accept-encoding, authorization, content-type, dnt, origin, user-agent, x-csrftoken, x-requested-with" always;
             add_header Access-Control-Allow-Credentials "true" always;
@@ -387,84 +399,36 @@ server {
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Forwarded-Host $server_name;
-    proxy_set_header X-Forwarded-Server $server_name;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Server $host;
     proxy_redirect off;
     proxy_read_timeout 300;
     proxy_connect_timeout 300;
     proxy_send_timeout 300;
     
-    # Frontend - all routes go to Next.js
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_cache_bypass $http_upgrade;
-    }
-    
     # Health checks - Django health endpoint (most specific first)
-    location /health {
+    location = /health {
         proxy_pass http://127.0.0.1:8000/health/;
     }
     
-    location /health/ {
+    location = /health/ {
         proxy_pass http://127.0.0.1:8000/health/;
     }
     
-    # Specific API routes (most specific first)
-    location /api/health/ {
+    # API health endpoint
+    location = /api/health/ {
         proxy_pass http://127.0.0.1:8000/api/health/;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
     }
     
-    # CSRF endpoint shortcut
-    location /api/csrf/ {
+    # CSRF endpoint - CRITICAL: Route /api/csrf/ to Django's /api/auth/csrf/
+    location = /api/csrf/ {
         proxy_pass http://127.0.0.1:8000/api/auth/csrf/;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-    
-    # API routes (general catch-all for /api/)
-    location /api/ {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-    
-    location /admin/ {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
     }
     
     # FastAPI specific endpoints (most specific first)
     location /api/fastapi/health/ {
         rewrite ^/api/fastapi/(.*) /$1 break;
-        proxy_pass http://127.0.0.1:8001;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8001/;
         proxy_read_timeout 300;
         proxy_connect_timeout 300;
         proxy_send_timeout 300;
@@ -472,13 +436,7 @@ server {
     
     location /api/fastapi/calculate-gifts/ {
         rewrite ^/api/fastapi/(.*) /$1 break;
-        proxy_pass http://127.0.0.1:8001;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8001/;
         proxy_read_timeout 300;
         proxy_connect_timeout 300;
         proxy_send_timeout 300;
@@ -486,13 +444,7 @@ server {
     
     location /api/fastapi/progress/ {
         rewrite ^/api/fastapi/(.*) /$1 break;
-        proxy_pass http://127.0.0.1:8001;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8001/;
         proxy_read_timeout 300;
         proxy_connect_timeout 300;
         proxy_send_timeout 300;
@@ -501,18 +453,43 @@ server {
     # FastAPI general routes (frontend expects /api/fastapi/ path)
     location /api/fastapi/ {
         rewrite ^/api/fastapi/(.*) /$1 break;
-        proxy_pass http://127.0.0.1:8001;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8001/;
         proxy_read_timeout 300;
         proxy_connect_timeout 300;
         proxy_send_timeout 300;
     }
     
+    # Django API routes (general catch-all for /api/ - MUST be after specific routes)
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000/api/;
+    }
+    
+    # Admin panel
+    location /admin/ {
+        proxy_pass http://127.0.0.1:8000/admin/;
+    }
+    
+    # Static and media files
+    location /static/ {
+        proxy_pass http://127.0.0.1:8000/static/;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+    
+    location /media/ {
+        proxy_pass http://127.0.0.1:8000/media/;
+        expires 1y;
+        add_header Cache-Control "public";
+    }
+    
+    # Frontend - Next.js (MUST be last)
+    location / {
+        proxy_pass http://127.0.0.1:3000/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_cache_bypass $http_upgrade;
+    }
 }
 EOF
 
@@ -642,18 +619,23 @@ if [ -f "/etc/letsencrypt/live/pathfindersgifts.com/fullchain.pem" ]; then
 # HTTPS configuration with SSL
 server {
     listen 80;
-    server_name pathfindersgifts.com www.pathfindersgifts.com;
+    server_name pathfindersgifts.com www.pathfindersgifts.com 3.98.30.68;
     return 301 https://$server_name$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name pathfindersgifts.com www.pathfindersgifts.com;
+    server_name pathfindersgifts.com www.pathfindersgifts.com 3.98.30.68;
 
     ssl_certificate /etc/letsencrypt/live/pathfindersgifts.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/pathfindersgifts.com/privkey.pem;
     include /etc/letsencrypt/options-ssl-nginx.conf;
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    # Security headers
+    add_header X-Frame-Options DENY always;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
     # CORS headers for API endpoints
     location ~ ^/(api|fastapi)/ {
@@ -680,84 +662,36 @@ server {
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Forwarded-Host $server_name;
-    proxy_set_header X-Forwarded-Server $server_name;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Server $host;
     proxy_redirect off;
     proxy_read_timeout 300;
     proxy_connect_timeout 300;
     proxy_send_timeout 300;
     
-    # Frontend - all routes go to Next.js
-    location / {
-        proxy_pass http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_cache_bypass $http_upgrade;
-    }
-    
     # Health checks - Django health endpoint (most specific first)
-    location /health {
+    location = /health {
         proxy_pass http://127.0.0.1:8000/health/;
     }
     
-    location /health/ {
+    location = /health/ {
         proxy_pass http://127.0.0.1:8000/health/;
     }
     
-    # Specific API routes (most specific first)
-    location /api/health/ {
+    # API health endpoint
+    location = /api/health/ {
         proxy_pass http://127.0.0.1:8000/api/health/;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
     }
     
-    # CSRF endpoint shortcut
-    location /api/csrf/ {
+    # CSRF endpoint - CRITICAL: Route /api/csrf/ to Django's /api/auth/csrf/
+    location = /api/csrf/ {
         proxy_pass http://127.0.0.1:8000/api/auth/csrf/;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-    
-    # API routes (general catch-all for /api/)
-    location /api/ {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-    
-    location /admin/ {
-        proxy_pass http://127.0.0.1:8000;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
     }
     
     # FastAPI specific endpoints (most specific first)
     location /api/fastapi/health/ {
         rewrite ^/api/fastapi/(.*) /$1 break;
-        proxy_pass http://127.0.0.1:8001;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8001/;
         proxy_read_timeout 300;
         proxy_connect_timeout 300;
         proxy_send_timeout 300;
@@ -765,13 +699,7 @@ server {
     
     location /api/fastapi/calculate-gifts/ {
         rewrite ^/api/fastapi/(.*) /$1 break;
-        proxy_pass http://127.0.0.1:8001;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8001/;
         proxy_read_timeout 300;
         proxy_connect_timeout 300;
         proxy_send_timeout 300;
@@ -779,13 +707,7 @@ server {
     
     location /api/fastapi/progress/ {
         rewrite ^/api/fastapi/(.*) /$1 break;
-        proxy_pass http://127.0.0.1:8001;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8001/;
         proxy_read_timeout 300;
         proxy_connect_timeout 300;
         proxy_send_timeout 300;
@@ -794,16 +716,42 @@ server {
     # FastAPI general routes (frontend expects /api/fastapi/ path)
     location /api/fastapi/ {
         rewrite ^/api/fastapi/(.*) /$1 break;
-        proxy_pass http://127.0.0.1:8001;
-        proxy_set_header X-Forwarded-Host $server_name;
-        proxy_set_header X-Forwarded-Server $server_name;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://127.0.0.1:8001/;
         proxy_read_timeout 300;
         proxy_connect_timeout 300;
         proxy_send_timeout 300;
+    }
+    
+    # Django API routes (general catch-all for /api/ - MUST be after specific routes)
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000/api/;
+    }
+    
+    # Admin panel
+    location /admin/ {
+        proxy_pass http://127.0.0.1:8000/admin/;
+    }
+    
+    # Static and media files
+    location /static/ {
+        proxy_pass http://127.0.0.1:8000/static/;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+    
+    location /media/ {
+        proxy_pass http://127.0.0.1:8000/media/;
+        expires 1y;
+        add_header Cache-Control "public";
+    }
+    
+    # Frontend - Next.js (MUST be last)
+    location / {
+        proxy_pass http://127.0.0.1:3000/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_cache_bypass $http_upgrade;
     }
 }
 EOFSSL
