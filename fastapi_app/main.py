@@ -73,8 +73,9 @@ async def root():
     return {"message": "Pathfinders FastAPI Service", "status": "running"}
 
 @app.get("/health/")
+@app.head("/health/")
 async def health_check():
-    """Health check endpoint for FastAPI"""
+    """Health check endpoint for FastAPI - supports both GET and HEAD"""
     return {"status": "healthy", "service": "fastapi", "version": "1.0"}
 
 @app.post("/calculate-gifts/")

@@ -403,9 +403,18 @@ server {
         proxy_cache_bypass $http_upgrade;
     }
     
-    # API routes
-    location /api/ {
-        proxy_pass http://127.0.0.1:8000;
+    # Health checks - Django health endpoint (most specific first)
+    location /health {
+        proxy_pass http://127.0.0.1:8000/health/;
+    }
+    
+    location /health/ {
+        proxy_pass http://127.0.0.1:8000/health/;
+    }
+    
+    # Specific API routes (most specific first)
+    location /api/health/ {
+        proxy_pass http://127.0.0.1:8000/api/health/;
         proxy_set_header X-Forwarded-Host $server_name;
         proxy_set_header X-Forwarded-Server $server_name;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -414,13 +423,26 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
     }
     
-    # Health checks
-    location /health {
-        proxy_pass http://127.0.0.1:8000;
+    # CSRF endpoint shortcut
+    location /api/csrf/ {
+        proxy_pass http://127.0.0.1:8000/api/auth/csrf/;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
     
-    location /health/ {
+    # API routes (general catch-all for /api/)
+    location /api/ {
         proxy_pass http://127.0.0.1:8000;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
     }
     
     location /admin/ {
@@ -433,9 +455,9 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
     }
     
-    # FastAPI routes - strip /fastapi prefix
-    location /fastapi/ {
-        rewrite ^/fastapi/(.*) /$1 break;
+    # FastAPI specific endpoints (most specific first)
+    location /api/fastapi/health/ {
+        rewrite ^/api/fastapi/(.*) /$1 break;
         proxy_pass http://127.0.0.1:8001;
         proxy_set_header X-Forwarded-Host $server_name;
         proxy_set_header X-Forwarded-Server $server_name;
@@ -448,9 +470,49 @@ server {
         proxy_send_timeout 300;
     }
     
-    location /fastapi {
-        rewrite ^/fastapi$ /fastapi/ permanent;
+    location /api/fastapi/calculate-gifts/ {
+        rewrite ^/api/fastapi/(.*) /$1 break;
+        proxy_pass http://127.0.0.1:8001;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_read_timeout 300;
+        proxy_connect_timeout 300;
+        proxy_send_timeout 300;
     }
+    
+    location /api/fastapi/progress/ {
+        rewrite ^/api/fastapi/(.*) /$1 break;
+        proxy_pass http://127.0.0.1:8001;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_read_timeout 300;
+        proxy_connect_timeout 300;
+        proxy_send_timeout 300;
+    }
+    
+    # FastAPI general routes (frontend expects /api/fastapi/ path)
+    location /api/fastapi/ {
+        rewrite ^/api/fastapi/(.*) /$1 break;
+        proxy_pass http://127.0.0.1:8001;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_read_timeout 300;
+        proxy_connect_timeout 300;
+        proxy_send_timeout 300;
+    }
+    
 }
 EOF
 
@@ -467,8 +529,20 @@ fi
 # Clear nginx cache and restart
 print_status "Clearing nginx cache and restarting..."
 sudo rm -rf /var/cache/nginx/*
+sudo systemctl stop nginx 2>/dev/null || true
 sudo systemctl start nginx
+sudo systemctl enable nginx
 sudo systemctl reload nginx
+
+# Verify nginx is running
+sleep 3
+if sudo systemctl is-active --quiet nginx; then
+    print_status "✅ Nginx is running and enabled"
+else
+    print_error "❌ Nginx failed to start"
+    sudo systemctl status nginx
+    exit 1
+fi
 
 print_status "Nginx configuration completed ✓"
 
@@ -665,11 +739,58 @@ fi
 # Test nginx routing
 print_status "Testing nginx routing..."
 
+# Check if nginx is running
+print_status "Checking nginx status..."
+if sudo systemctl is-active --quiet nginx; then
+    print_status "✅ Nginx is running"
+else
+    print_warning "⚠️  Nginx is not running - starting it..."
+    sudo systemctl start nginx
+    sleep 2
+fi
+
+# Check nginx configuration
+print_status "Testing nginx configuration..."
+if sudo nginx -t; then
+    print_status "✅ Nginx configuration is valid"
+else
+    print_error "❌ Nginx configuration is invalid"
+    sudo nginx -t
+    exit 1
+fi
+
+# Test local nginx routing first
+print_status "Testing local nginx routing..."
+if curl -s -I http://127.0.0.1/api/ | grep -q "200\|302\|403"; then
+    print_status "✅ Django API accessible through local nginx"
+else
+    print_warning "⚠️  Django API not accessible through local nginx"
+    print_status "Debug info:"
+    curl -v http://127.0.0.1/api/ 2>&1 | head -20
+fi
+
+if curl -s -I http://127.0.0.1/fastapi/health | grep -q "200\|502"; then
+    print_status "✅ FastAPI accessible through local nginx"
+else
+    print_warning "⚠️  FastAPI not accessible through local nginx"
+    print_status "Debug info:"
+    curl -v http://127.0.0.1/fastapi/health 2>&1 | head -20
+fi
+
+# Test external nginx routing
+print_status "Testing external nginx routing..."
+
 # Test Django API through nginx
 if curl -s -I https://pathfindersgifts.com/api/ | grep -q "200\|302\|403"; then
     print_status "✅ Django API accessible through nginx"
 else
     print_warning "⚠️  Django API not accessible through nginx"
+    print_status "Trying HTTP instead of HTTPS..."
+    if curl -s -I http://pathfindersgifts.com/api/ | grep -q "200\|302\|403"; then
+        print_status "✅ Django API accessible through HTTP nginx"
+    else
+        print_warning "⚠️  Django API not accessible through HTTP nginx"
+    fi
 fi
 
 # Test FastAPI through nginx
@@ -677,6 +798,12 @@ if curl -s -I https://pathfindersgifts.com/fastapi/health | grep -q "200\|502"; 
     print_status "✅ FastAPI health check accessible through nginx"
 else
     print_warning "⚠️  FastAPI not accessible through nginx"
+    print_status "Trying HTTP instead of HTTPS..."
+    if curl -s -I http://pathfindersgifts.com/fastapi/health | grep -q "200\|502"; then
+        print_status "✅ FastAPI accessible through HTTP nginx"
+    else
+        print_warning "⚠️  FastAPI not accessible through HTTP nginx"
+    fi
 fi
 
 print_status ""
