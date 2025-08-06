@@ -630,9 +630,192 @@ sudo certbot --nginx -d pathfindersgifts.com -d www.pathfindersgifts.com --non-i
 if [ -f "/etc/letsencrypt/live/pathfindersgifts.com/fullchain.pem" ]; then
     print_status "SSL certificate installed successfully ✓"
     
+    # Certbot may have overwritten our custom routes - restore them
+    print_status "Restoring custom nginx configuration after SSL setup..."
+    
+    # Check if certbot created a backup
+    if [ -f "/etc/nginx/sites-enabled/pathfindersgifts.com.backup" ]; then
+        print_status "Found certbot backup, restoring our custom configuration..."
+        
+        # Create a complete HTTPS configuration with our custom routes
+        sudo tee /etc/nginx/sites-available/pathfindersgifts.com > /dev/null << 'EOFSSL'
+# HTTPS configuration with SSL
+server {
+    listen 80;
+    server_name pathfindersgifts.com www.pathfindersgifts.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name pathfindersgifts.com www.pathfindersgifts.com;
+
+    ssl_certificate /etc/letsencrypt/live/pathfindersgifts.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/pathfindersgifts.com/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+    # CORS headers for API endpoints
+    location ~ ^/(api|fastapi)/ {
+        add_header Access-Control-Allow-Origin "https://pathfindersgifts.com" always;
+        add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "accept, accept-encoding, authorization, content-type, dnt, origin, user-agent, x-csrftoken, x-requested-with" always;
+        add_header Access-Control-Allow-Credentials "true" always;
+        
+        # Handle preflight requests
+        if ($request_method = OPTIONS) {
+            add_header Access-Control-Allow-Origin "https://pathfindersgifts.com" always;
+            add_header Access-Control-Allow-Methods "GET, POST, PUT, PATCH, DELETE, OPTIONS" always;
+            add_header Access-Control-Allow-Headers "accept, accept-encoding, authorization, content-type, dnt, origin, user-agent, x-csrftoken, x-requested-with" always;
+            add_header Access-Control-Allow-Credentials "true" always;
+            add_header Access-Control-Max-Age 1728000;
+            add_header Content-Type "text/plain; charset=utf-8";
+            add_header Content-Length 0;
+            return 204;
+        }
+    }
+
+    # Common proxy settings
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host $server_name;
+    proxy_set_header X-Forwarded-Server $server_name;
+    proxy_redirect off;
+    proxy_read_timeout 300;
+    proxy_connect_timeout 300;
+    proxy_send_timeout 300;
+    
+    # Frontend - all routes go to Next.js
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_cache_bypass $http_upgrade;
+    }
+    
+    # Health checks - Django health endpoint (most specific first)
+    location /health {
+        proxy_pass http://127.0.0.1:8000/health/;
+    }
+    
+    location /health/ {
+        proxy_pass http://127.0.0.1:8000/health/;
+    }
+    
+    # Specific API routes (most specific first)
+    location /api/health/ {
+        proxy_pass http://127.0.0.1:8000/api/health/;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+    
+    # CSRF endpoint shortcut
+    location /api/csrf/ {
+        proxy_pass http://127.0.0.1:8000/api/auth/csrf/;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+    
+    # API routes (general catch-all for /api/)
+    location /api/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+    
+    location /admin/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+    
+    # FastAPI specific endpoints (most specific first)
+    location /api/fastapi/health/ {
+        rewrite ^/api/fastapi/(.*) /$1 break;
+        proxy_pass http://127.0.0.1:8001;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_read_timeout 300;
+        proxy_connect_timeout 300;
+        proxy_send_timeout 300;
+    }
+    
+    location /api/fastapi/calculate-gifts/ {
+        rewrite ^/api/fastapi/(.*) /$1 break;
+        proxy_pass http://127.0.0.1:8001;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_read_timeout 300;
+        proxy_connect_timeout 300;
+        proxy_send_timeout 300;
+    }
+    
+    location /api/fastapi/progress/ {
+        rewrite ^/api/fastapi/(.*) /$1 break;
+        proxy_pass http://127.0.0.1:8001;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_read_timeout 300;
+        proxy_connect_timeout 300;
+        proxy_send_timeout 300;
+    }
+    
+    # FastAPI general routes (frontend expects /api/fastapi/ path)
+    location /api/fastapi/ {
+        rewrite ^/api/fastapi/(.*) /$1 break;
+        proxy_pass http://127.0.0.1:8001;
+        proxy_set_header X-Forwarded-Host $server_name;
+        proxy_set_header X-Forwarded-Server $server_name;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_read_timeout 300;
+        proxy_connect_timeout 300;
+        proxy_send_timeout 300;
+    }
+}
+EOFSSL
+
+        # Remove the backup and enable our custom configuration
+        sudo rm -f /etc/nginx/sites-enabled/pathfindersgifts.com.backup
+        sudo ln -sf /etc/nginx/sites-available/pathfindersgifts.com /etc/nginx/sites-enabled/
+    fi
+    
     # Test configuration and reload
     sudo nginx -t && sudo systemctl reload nginx
-    print_status "HTTPS configuration activated ✓"
+    print_status "HTTPS configuration with custom routes activated ✓"
 else
     print_warning "SSL certificate not found - continuing with HTTP-only configuration"
     print_warning "You can manually obtain SSL certificate later with:"
