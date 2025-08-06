@@ -29,7 +29,8 @@ IS_PRODUCTION = ENVIRONMENT == 'production'
 ALLOWED_HOSTS = [
     'pathfindersgifts.com',
     'www.pathfindersgifts.com',
-    '13.61.197.147'
+    '13.61.197.147',
+    '3.98.30.68'
 ]
 
 # Add localhost for development
@@ -111,6 +112,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 CORS_ALLOWED_ORIGINS = [
     "https://pathfindersgifts.com",
     "https://www.pathfindersgifts.com",
+    "http://3.98.30.68",
+    "https://3.98.30.68",
 ]
 
 # Add local development CORS settings
@@ -141,6 +144,8 @@ CORS_ALLOW_HEADERS = [
 CSRF_TRUSTED_ORIGINS = [
     "https://pathfindersgifts.com",
     "https://www.pathfindersgifts.com",
+    "http://3.98.30.68",
+    "https://3.98.30.68",
 ]
 
 # Add local trusted origins for development
@@ -195,6 +200,9 @@ DATABASES['default']['TEST'] = {
 }
 
 FASTAPI_URL = os.getenv('FASTAPI_URL', 'http://127.0.0.1:8001')
+
+# Frontend URL for redirects
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'https://pathfindersgifts.com' if IS_PRODUCTION else 'http://localhost:3000')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [

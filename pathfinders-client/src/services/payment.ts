@@ -28,7 +28,7 @@ export const donationApi = {
   // Stripe donation (authenticated)
   createStripeDonation: async (amount: number, currency: string = 'usd', message?: string): Promise<StripeDonationResponse> => {
     try {
-      const response = await apiClient.post('/core/donate/stripe/', {
+      const response = await apiClient.post('/api/core/donate/stripe/', {
         amount,
         currency,
         message
@@ -87,7 +87,7 @@ export const donationApi = {
         formattedPhone = `233${cleanPhone}`;
       }
 
-      const response = await apiClient.post('/core/donate/mtn/', {
+      const response = await apiClient.post('/api/core/donate/mtn/', {
         amount,
         phone_number: formattedPhone,
         currency,
@@ -146,28 +146,3 @@ export const donationApi = {
   },
 };
 
-// Legacy payment API (kept for backwards compatibility during transition)
-export const paymentApi = {
-  validatePayment: async (userId: number, paymentId?: string): Promise<PaymentValidation> => {
-    try {
-      const response = await apiClient.post('/core/validate-payment/', {
-        user_id: userId,
-        payment_id: paymentId
-      });
-      return response.data;
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to validate payment');
-    }
-  },
-
-  createUserCheckoutSession: async (userId: number): Promise<{ checkoutUrl: string }> => {
-    try {
-      const response = await apiClient.post('/core/create-user-checkout/', {
-        user_id: userId
-      });
-      return { checkoutUrl: response.data.checkout_url };
-    } catch (error: any) {
-      throw new Error(error.response?.data?.error || 'Failed to create checkout session');
-    }
-  }
-};

@@ -78,6 +78,12 @@ async def health_check():
     """Health check endpoint for FastAPI - supports both GET and HEAD"""
     return {"status": "healthy", "service": "fastapi", "version": "1.0"}
 
+@app.get("/health")
+@app.head("/health")
+async def health_check_no_slash():
+    """Health check endpoint without trailing slash"""
+    return {"status": "healthy", "service": "fastapi", "version": "1.0"}
+
 @app.post("/calculate-gifts/")
 async def calculate_gifts(assessment: AssessmentRequest):
     """

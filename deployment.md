@@ -244,7 +244,7 @@ FASTAPI_PORT=8001
 curl -I https://pathfindersgifts.com/api/
 
 # Test FastAPI
-curl -I https://pathfindersgifts.com/fastapi/
+curl -I https://pathfindersgifts.com/api/fastapi/
 
 # Test Django Admin
 curl -I https://pathfindersgifts.com/admin/
