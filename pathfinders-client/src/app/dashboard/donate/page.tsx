@@ -69,11 +69,17 @@ export default function DonatePage() {
           phone_number: form.phoneNumber,
         };
 
+        // Get CSRF token first
+        const csrfResponse = await fetch('/api/csrf/', {
+          credentials: 'include'
+        });
+        const csrfData = await csrfResponse.json();
+        
         const response = await fetch(endpoint, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': document.cookie.split('csrftoken=')[1]?.split(';')[0] || '',
+            'X-CSRFToken': csrfData.csrfToken,
           },
           credentials: 'include',
           body: JSON.stringify(requestBody),
